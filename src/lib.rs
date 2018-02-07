@@ -2,7 +2,7 @@ extern crate scintilla_sys;
 
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
+//#[macro_use]
 extern crate plygui_api;
 
 #[cfg(target_os="windows")]
@@ -12,5 +12,11 @@ mod lib_win32;
 extern crate plygui_win32;
 #[cfg(target_os="windows")]
 extern crate winapi;
+#[cfg(target_os="windows")]
+pub use lib_win32::Scintilla;
 
 pub const MEMBER_ID_SCINTILLA: &str = "Scintilla";
+
+pub trait UiScintilla: plygui_api::traits::UiControl {
+    
+}

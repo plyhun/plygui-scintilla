@@ -10,7 +10,7 @@ path = "src/lib.rs"
 [dependencies]
 plygui-api = {version = "0.0.1", path = "../plygui-api"}
 plygui-win32 = {version = "0.0.1", path = "../plygui-win32"}
-winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi"] }
+winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "mmeapi", "robuffer", "oleauto"] }
 lazy_static = "~0.2"
 scintilla-sys = {version = "4.0.2", path = "../scintilla-sys-rs"}
 
