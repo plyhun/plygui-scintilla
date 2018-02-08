@@ -10,10 +10,11 @@ use winapi::shared::windef;
 use winapi::shared::minwindef;
 use winapi::um::winuser;
 use winapi::um::commctrl;
-use winapi::ctypes::c_void;
+use winapi::ctypes::c_void as win_void;
 
 use std::{ptr, mem, str};
 use std::os::windows::ffi::OsStrExt;
+use std::os::raw::{c_void, c_int};
 use std::ffi::OsStr;
 use std::cmp::max;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
@@ -33,6 +34,8 @@ lazy_static! {
 pub struct Scintilla {
     base: common::WindowsControlBase,
     
+    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int)>,
+    self_ptr: Option<*mut c_void>,
 }
 
 impl Scintilla {
@@ -54,7 +57,8 @@ impl Scintilla {
                     fn_size: size,
                 },
             ),
-            
+            fn_ptr: None,
+            self_ptr: None,
         });
 
         b
@@ -71,13 +75,17 @@ impl Drop for Scintilla {
 }
 
 impl UiScintilla for Scintilla {
-    
+    fn set_margin_width(&mut self, index: usize, width: isize) {
+        if let Some(fn_ptr) = self.fn_ptr {
+            (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
+        }
+    }
 }
 impl UiControl for Scintilla {
     fn on_added_to_container(&mut self, parent: &UiContainer, x: i32, y: i32) {
         use plygui_api::development::UiDrawable;
 
-        let selfptr = self as *mut _ as *mut c_void;
+        let selfptr = self as *mut _ as *mut win_void;
         let (pw, ph) = parent.size();
         //let (lp,tp,rp,bp) = self.base.control_base.layout.padding.into();
         let (lm, tm, rm, bm) = self.base.control_base.layout.margin.into();
@@ -100,11 +108,18 @@ impl UiControl for Scintilla {
         };
         self.base.hwnd = hwnd;
         self.base.subclass_id = id;
+        
+        unsafe {
+            self.fn_ptr = Some(mem::transmute(winuser::SendMessageW(self.base.hwnd, scintilla_sys::SCI_GETDIRECTFUNCTION, 0, 0)));
+            self.self_ptr = Some(winuser::SendMessageW(self.base.hwnd, scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0) as *mut c_void);
+        }
     }
     fn on_removed_from_container(&mut self, _: &UiContainer) {
         common::destroy_hwnd(self.base.hwnd, self.base.subclass_id, Some(handler));
         self.base.hwnd = 0 as windef::HWND;
         self.base.subclass_id = 0;
+        self.fn_ptr = None;
+        self.self_ptr = None;
     }
 
     fn is_container_mut(&mut self) -> Option<&mut UiContainer> {
