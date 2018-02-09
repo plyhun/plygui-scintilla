@@ -265,11 +265,141 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
     fn punctuation_chars<'a>(&'a self) -> Cow<'a, str>;
     fn set_default_chars(&mut self);
     
+    fn end_styled(&self) -> u32;
+    fn start_styling(&mut self, start: u32);
+    fn set_styling(&mut self, len: u32, style: u32);
+    fn set_styling_ex(&mut self, len: u32, styles: &str);
+    fn set_idle_styling(&mut self, style: u32);
+    fn idle_styling(&self) -> u32;
+    fn set_line_state(&mut self, line: u32, state: u32);
+    fn line_state(&self, line: u32) -> u32;
+    fn max_line_state(&self) -> u32;
+    
+    fn style_reset_default(&mut self);
+    fn style_clear_all(&mut self);
+    fn style_set_font(&mut self, style: u32, name: &str);
+    fn style_font<'a>(&'a self, style: u32) -> Cow<'a, str>;
+    fn style_set_size(&mut self, style: u32, size: u32);
+    fn style_size(&self, style: u32) -> u32;
+    fn style_set_size_fractional(&mut self, style: u32, hundreth_points: u32);
+    fn style_size_fractional(&self, style: u32) -> u32;
+    fn style_set_bold(&mut self, style: u32, enabled: bool);
+    fn style_is_bold(&self, style: u32) -> bool;
+    fn style_set_italic(&mut self, style: u32, enabled: bool);
+    fn style_is_italic(&self, style: u32) -> bool;
+    fn style_set_underline(&mut self, style: u32, enabled: bool);
+    fn style_is_underline(&self, style: u32) -> bool;
+    fn style_set_weight(&mut self, style: u32, weight: u32);
+    fn style_weight(&self, style: u32) -> u32;
+    fn style_set_foreground(&mut self, style: u32, color: Color);
+    fn style_foreground(&self, style: u32) -> Color;
+    fn style_set_background(&mut self, style: u32, color: Color);
+    fn style_background(&self, style: u32) -> Color;
+    fn style_set_eol_filled(&mut self, style: u32, enabled: bool);
+    fn style_is_eol_filled(&self, style: u32) -> bool;
+    fn style_set_charset(&mut self, style: u32, charset: u32);
+    fn style_charset(&self, style: u32) -> u32;
+    fn style_set_case(&mut self, style: u32, case: u32);
+    fn style_case(&self, style: u32) -> u32;
+    fn style_set_visible(&mut self, style: u32, enabled: bool);
+    fn style_is_visible(&self, style: u32) -> bool;
+    fn style_set_changeable(&mut self, style: u32, enabled: bool);
+    fn style_is_changeable(&self, style: u32) -> bool;
+    fn style_set_hotspot(&mut self, style: u32, enabled: bool);
+    fn style_is_hotspot(&self, style: u32) -> bool;
+    
+    fn set_selection_foreground(&mut self, use_setting: bool, color: Color);
+    fn set_selection_background(&mut self, use_setting: bool, color: Color);
+    fn set_selection_alpha(&mut self, alpha: u8);
+    fn selection_alpha(&self) -> u8;
+    fn set_selection_eol_filled(&mut self, enabled: bool);
+    fn is_selection_eol_filled(&self) -> bool;
+    fn set_caret_foreground(&mut self, color: Color);
+    fn caret_foreground(&self) -> Color;
+    fn set_caret_line_visible(&mut self, enabled: bool);
+    fn is_caret_line_visible(&self) -> bool;
+    fn set_caret_line_background(&mut self, color: Color);
+    fn caret_line_background(&self) -> Color;
+    fn set_caret_line_background_alpha(&mut self, alpha: u8);
+    fn caret_line_background_alpha(&self) -> u8;
+    fn set_caret_line_frame(&mut self, width: u32);
+    fn caret_line_frame(&self) -> u32;
+    fn set_caret_line_visible_always(&mut self, enabled: bool);
+    fn is_caret_line_visible_always(&self) -> bool;
+    fn set_caret_period(&mut self, period_ms: u32);
+    fn caret_period(&self) -> u32;
+    fn set_caret_style(&mut self, style: u32);
+    fn caret_style(&self) -> u32;
+    fn set_caret_width(&mut self, style: u32);
+    fn caret_width(&self) -> u32;
+    fn set_hotspot_active_foreground(&mut self, use_setting: bool, color: Color);
+    fn hotspot_active_foreground(&self) -> Color;
+    fn set_hotspot_active_background(&mut self, use_setting: bool, color: Color);
+    fn hotspot_active_background(&self) -> Color;
+    fn set_hotspot_active_underline(&mut self, enabled: bool);
+    fn is_hotspot_active_underline(&self) -> bool; 
+    fn set_hotspot_single_line(&mut self, enabled: bool);
+    fn is_hotspot_single_line(&self) -> bool;
+    fn set_caret_sticky_behavior(&mut self, behavior: u32);
+    fn caret_sticky_behavior(&self) -> u32;
+    fn toggle_caret_sticky(&mut self);
+    
+    fn set_char_representation(&mut self, c: char, repr: &str);
+    fn char_representation<'a>(&'a self, c: char) -> Cow<'a, str>;
+    fn clear_char_representation(&mut self, c: char);
+    fn set_control_char_symbol(&mut self, symbol: u32);
+    fn control_char_symbol(&self) -> u32;
+    
+    fn set_margins(&mut self, margins: u32);
+    fn margins(&self) -> u32;
+    fn margin_set_type(&mut self, margin: u32, type_: u32);
+    fn margin_type(&self, margin: u32) -> u32;
+    fn set_margin_width(&mut self, margin: u32, width: u32);
+    fn margin_width(&self, margin: u32) -> u32;
+    fn set_margin_mask(&mut self, margin: u32, mask: u32);
+    fn margin_mask(&self, margin: u32) -> u32;
+    fn set_margin_sensitive(&mut self, margin: u32, enabled: bool);
+    fn margin_is_sensitive(&self, margin: u32) -> bool;
+    fn set_margin_cursor(&mut self, margin: u32, cursor: u32);
+    fn margin_cursor(&self, cursor: u32) -> u32;
+    fn set_margin_background(&mut self, margin: u32, color: Color);
+    fn margin_background(&self, margin: u32) -> Color;
+    fn set_margin_left(&mut self, margin: u32, width: u32);
+    fn margin_left(&self, margin: u32) -> u32;
+    fn set_margin_right(&mut self, margin: u32, width: u32);
+    fn margin_right(&self, margin: u32) -> u32;
+    fn set_fold_margin_background(&mut self, use_setting: bool, color: Color);
+    fn set_fold_margin_foreground(&mut self, use_setting: bool, color: Color);
+    fn set_margin_text(&mut self, line: u32, text: &str);
+    fn margin_text<'a>(&'a self, line: u32) -> Cow<'a, str>;
+    fn set_margin_style(&mut self, line: u32, style: u32);
+    fn margin_style(&self, line: u32) -> u32;
+    fn set_margin_styles(&mut self, line: u32, styles: &str);
+    fn margin_styles<'a>(&'a self, line: u32) -> Cow<'a, str>;
+    fn clear_all_margin_text(&mut self);
+    fn set_margin_style_offset(&mut self, style: u32);
+    fn margin_style_offset(&self) -> u32;
+    fn set_margin_options(&mut self, opts: u32);
+    fn margin_options(&self) -> u32;
+    
     /*
-
+SCI_ANNOTATIONSETTEXT(int line, const char *text)
+SCI_ANNOTATIONGETTEXT(int line, char *text) → int
+SCI_ANNOTATIONSETSTYLE(int line, int style)
+SCI_ANNOTATIONGETSTYLE(int line) → int
+SCI_ANNOTATIONSETSTYLES(int line, const char *styles)
+SCI_ANNOTATIONGETSTYLES(int line, char *styles) → int
+SCI_ANNOTATIONGETLINES(int line) → int
+SCI_ANNOTATIONCLEARALL
+SCI_ANNOTATIONSETVISIBLE(int visible)
+SCI_ANNOTATIONGETVISIBLE → int
+SCI_ANNOTATIONSETSTYLEOFFSET(int style)
+SCI_ANNOTATIONGETSTYLEOFFSET → int
     */
     //fn set_margin_width(&mut self, index: usize, width: isize);
 }
+
+
 
 pub struct Color(u32);
 impl Color {
