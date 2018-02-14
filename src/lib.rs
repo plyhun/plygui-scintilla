@@ -382,24 +382,152 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
     fn set_margin_options(&mut self, opts: u32);
     fn margin_options(&self) -> u32;
     
+    fn annotation_set_text(&mut self, line: u32, text: &str);
+    fn annotation_text<'a>(&'a self, line: u32) -> Cow<'a, str>;
+    fn annotation_set_style(&mut self, line: u32, style: u32);
+    fn annotation_style(&self) -> u32;
+    fn annotation_set_styles(&mut self, line: u32, styles: &str);
+    fn annotation_styles<'a>(&'a self, line: u32) -> Cow<'a, str>;
+    fn annotation_lines(&self, line: u32) -> u32;
+    fn annotation_clear_all(&mut self);
+    fn annotation_set_visible(&mut self, enabled: bool);
+    fn annotation_is_visible(&self) -> bool;
+    fn annotation_set_style_offset(&mut self, style: u32);
+    fn annotation_style_offset(&self) -> u32;
+    
+    fn set_buffered_draw(&mut self, enabled: bool);
+    fn is_buffered_draw(&self) -> bool;
+    fn set_draw_phases(&mut self, phases: u32);
+    fn draw_phases(&self) -> u32;
+    fn set_technology(&mut self, tech: Technology);
+    fn technology(&self) -> Technology;
+    fn set_font_quality(&mut self, q: FontQuality);
+    fn font_quality(&self) -> FontQuality;
+    fn set_codepage(&mut self, cp: Codepage);
+    fn codepage(&self) -> Codepage;
+    fn set_ime_interaction(&mut self, i: ImeInteraction);
+    fn ime_interaction(&self) -> ImeInteraction;
+    fn grab_focus(&mut self);
+    fn set_focused(&mut self, enabled: bool);
+    fn is_focused(&self) -> bool;
+    
+    fn highlight_braces(&mut self, pos_a: u32, pos_b: u32);
+    fn highlight_broken_braces(&mut self, pos: u32);
+    fn hightlight_braces_indicator(&mut self, use_setting: bool, indicator: u32);
+    fn hightlight_broken_braces_indicator(&mut self, use_setting: bool, indicator: u32);
+    fn brace_match(&self, max_re_style: u32) -> u32;
+    
+    fn set_tab_width(&mut self, width: u32);
+    fn tab_width(&self) -> u32;
+    fn clear_tab_stops(&mut self, line: u32);
+    fn add_tab_stop(&mut self, line: u32, pos: u32);
+    fn set_use_tabs(&mut self, enabled: bool);
+    fn is_use_tabs(&self) -> bool;
+    fn set_indent_size(&mut self, value: u32);
+    fn indent_size(&self) -> u32;
+    fn set_tab_indents(&mut self, enabled: bool);
+    fn is_tab_indents(&self) -> bool;
+    fn set_backspace_unindent(&mut self, enabled: bool);
+    fn is_backspace_unindent(&self) -> bool;
+    fn set_line_indent_width(&mut self, line: u32, value: u32);
+    fn line_indent_width(&self, line: u32) -> u32;
+    fn line_indent_position(&self, line: u32) -> u32;
+    fn set_indent_guides(&mut self, guides: IndentationGuides);
+    fn indent_guides(&self) -> IndentationGuides;
+    fn set_highlight_guide(&mut self, column: u32);
+    fn highlight_guide(&self) -> u32;
+    
+    fn marker_define(&mut self, number: u32, symbol: u32);
+    fn marker_define_pixmap(&mut self, number: u32, pixmap: &str);
+    fn rgba_image_set_width(&mut self, value: u32);
+    fn rgba_image_set_height(&mut self, value: u32);
+    fn rgba_image_set_scale(&mut self, percent: u32);
+    fn marker_define_rgba_image(&mut self, number: u32, pixels: &str);
+    fn marker_symbol_defined(&self, number: u32) -> u32;
+    fn marker_set_foreground(&mut self, number: u32, color: Color);
+    fn marker_set_background(&mut self, number: u32, color: Color);
+    fn marker_set_background_selected(&mut self, number: u32, color: Color);
+    fn enable_marker_highlight(&mut self, enabled: bool);
+    fn marker_set_alpha(&mut self, number: u32, alpha: u8);
+    fn marker_add(&mut self, line: u32, number: u32) -> u32;
+    fn marker_add_set(&mut self, line: u32, set: u32);
+    fn marker_delete(&mut self, line: u32, number: u32);
+    fn marker_delete_all(&mut self, number: u32);
+    fn marker(&self, line: u32) -> u32;
+    fn marker_next(&self, line_start: u32, marker_mask: u32) -> u32;
+    fn marker_prev(&self, line_start: u32, marker_mask: u32) -> u32;
+    fn marker_line_from_handle(&self, handle: u32) -> u32;
+    fn marker_delete_handle(&mut self, handle: u32);
+    
     /*
-SCI_ANNOTATIONSETTEXT(int line, const char *text)
-SCI_ANNOTATIONGETTEXT(int line, char *text) → int
-SCI_ANNOTATIONSETSTYLE(int line, int style)
-SCI_ANNOTATIONGETSTYLE(int line) → int
-SCI_ANNOTATIONSETSTYLES(int line, const char *styles)
-SCI_ANNOTATIONGETSTYLES(int line, char *styles) → int
-SCI_ANNOTATIONGETLINES(int line) → int
-SCI_ANNOTATIONCLEARALL
-SCI_ANNOTATIONSETVISIBLE(int visible)
-SCI_ANNOTATIONGETVISIBLE → int
-SCI_ANNOTATIONSETSTYLEOFFSET(int style)
-SCI_ANNOTATIONGETSTYLEOFFSET → int
+SCI_INDICSETSTYLE(int indicator, int indicatorStyle)
+SCI_INDICGETSTYLE(int indicator) → int
+SCI_INDICSETFORE(int indicator, colour fore)
+SCI_INDICGETFORE(int indicator) → colour
+SCI_INDICSETALPHA(int indicator, alpha alpha)
+SCI_INDICGETALPHA(int indicator) → int
+SCI_INDICSETOUTLINEALPHA(int indicator, alpha alpha)
+SCI_INDICGETOUTLINEALPHA(int indicator) → int
+SCI_INDICSETUNDER(int indicator, bool under)
+SCI_INDICGETUNDER(int indicator) → bool
+SCI_INDICSETHOVERSTYLE(int indicator, int indicatorStyle)
+SCI_INDICGETHOVERSTYLE(int indicator) → int
+SCI_INDICSETHOVERFORE(int indicator, colour fore)
+SCI_INDICGETHOVERFORE(int indicator) → colour
+SCI_INDICSETFLAGS(int indicator, int flags)
+SCI_INDICGETFLAGS(int indicator) → int
+
+SCI_SETINDICATORCURRENT(int indicator)
+SCI_GETINDICATORCURRENT → int
+SCI_SETINDICATORVALUE(int value)
+SCI_GETINDICATORVALUE → int
+SCI_INDICATORFILLRANGE(int start, int lengthFill)
+SCI_INDICATORCLEARRANGE(int start, int lengthClear)
+SCI_INDICATORALLONFOR(int pos) → int
+SCI_INDICATORVALUEAT(int indicator, int pos) → int
+SCI_INDICATORSTART(int indicator, int pos) → int
+SCI_INDICATOREND(int indicator, int pos) → int
+SCI_FINDINDICATORSHOW(int start, int end)
+SCI_FINDINDICATORFLASH(int start, int end)
+SCI_FINDINDICATORHIDE
     */
     //fn set_margin_width(&mut self, index: usize, width: isize);
 }
+pub enum IndentationGuides {
+    None = scintilla_sys::SC_IV_NONE as isize,
+    Real = scintilla_sys::SC_IV_REAL as isize,
+    LookForward = scintilla_sys::SC_IV_LOOKFORWARD as isize,
+    LookBoth = scintilla_sys::SC_IV_LOOKBOTH as isize,
+}
 
+pub enum ImeInteraction {
+    Windowed = scintilla_sys::SC_IME_WINDOWED as isize,
+    Inline = scintilla_sys::SC_IME_INLINE as isize,
+}
 
+pub enum Technology {
+    SystemDefault = scintilla_sys::SC_TECHNOLOGY_DEFAULT as isize,
+    DirectWrite = scintilla_sys::SC_TECHNOLOGY_DIRECTWRITE as isize,
+    DirectWriteFrameRetain = scintilla_sys::SC_TECHNOLOGY_DIRECTWRITERETAIN as isize,
+    DirectWriteGdi = scintilla_sys::SC_TECHNOLOGY_DIRECTWRITEDC as isize,    
+}
+
+pub enum FontQuality {
+    SystemDefault = scintilla_sys::SC_EFF_QUALITY_DEFAULT as isize, 
+    NonAntialiased = scintilla_sys::SC_EFF_QUALITY_NON_ANTIALIASED as isize, 
+    Antialiased = scintilla_sys::SC_EFF_QUALITY_ANTIALIASED as isize, 
+    LcdOptimized = scintilla_sys::SC_EFF_QUALITY_LCD_OPTIMIZED as isize,
+}
+
+pub enum Codepage {
+    Ascii = 0isize,
+    Utf8 = 65001isize, 
+    ShiftJis = 932isize, 
+    ChineseSimplifiedGbk = 936isize, 
+    KoreanUnifiedHangul = 949isize, 
+    ChineseTraditionalBig5 = 950isize, 
+    KoreanJohab = 1361isize
+}
 
 pub struct Color(u32);
 impl Color {
