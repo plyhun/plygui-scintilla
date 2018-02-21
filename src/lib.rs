@@ -459,23 +459,37 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
     fn marker_line_from_handle(&self, handle: u32) -> u32;
     fn marker_delete_handle(&mut self, handle: u32);
     
-    /*
-SCI_INDICSETSTYLE(int indicator, int indicatorStyle)
-SCI_INDICGETSTYLE(int indicator) → int
-SCI_INDICSETFORE(int indicator, colour fore)
-SCI_INDICGETFORE(int indicator) → colour
-SCI_INDICSETALPHA(int indicator, alpha alpha)
-SCI_INDICGETALPHA(int indicator) → int
-SCI_INDICSETOUTLINEALPHA(int indicator, alpha alpha)
-SCI_INDICGETOUTLINEALPHA(int indicator) → int
-SCI_INDICSETUNDER(int indicator, bool under)
-SCI_INDICGETUNDER(int indicator) → bool
-SCI_INDICSETHOVERSTYLE(int indicator, int indicatorStyle)
-SCI_INDICGETHOVERSTYLE(int indicator) → int
-SCI_INDICSETHOVERFORE(int indicator, colour fore)
-SCI_INDICGETHOVERFORE(int indicator) → colour
-SCI_INDICSETFLAGS(int indicator, int flags)
-SCI_INDICGETFLAGS(int indicator) → int
+	fn indicator_set_style(&mut self, indicator: u32, style: u32);
+	fn indicator_style(&self, indicator: u32) -> u32;
+	fn indicator_set_foreground(&mut self, indicator: u32, color: Color);
+	fn indicator_foreground(&self, indicator: u32) -> Color;
+	fn indicator_set_alpha(&mut self, indicator: u32, alpha: u8);
+	fn indicator_alpha(&self, indicator: u32) -> u8;
+	fn indicator_set_outline_alpha(&mut self, indicator: u32, alpha: u8);
+	fn indicator_outline_alpha(&self, indicator: u32) -> u8;
+	fn indicator_set_underline(&mut self, indicator: u32, enabled: bool);
+	fn indicator_is_underline(&self, indicator: u32) -> bool;
+	fn indicator_set_hover_style(&mut self, indicator: u32, style: u32);
+	fn indicator_hover_style(&self, indicator: u32) -> u32;
+	fn indicator_set_hover_foreground(&mut self, indicator: u32, color: Color);
+	fn indicator_hover_foreground(&self, indicator: u32) -> Color;
+	fn indicator_set_flags(&mut self, indicator: u32, flags: u32);
+	fn indicator_flags(&self, indicator: u32) -> u32;
+	
+	fn set_current_indicator(&mut self, indicator: u32);
+	fn current_indicator(&self) -> u32;
+	fn set_indicator_value(&mut self, value: u32);
+	fn indicator_value(&self) -> u32;
+	fn fill_indicator_range(&mut self, start: u32, len: u32);
+	fn clear_indicator_range(&mut self, start: u32, len: u32);
+	fn all_indicator_on_for(&mut self, pos: u32);
+	fn indicator_value(&self, indicator: u32, pos: u32) -> u32;
+	fn indicator_start(&self, indicator: u32, pos: u32) -> u32;
+	fn indicator_end(&self, indicator: u32, pos: u32) -> u32;
+	fn find_indicator_show(&mut self, start: u32, end: u32);
+	fn find_indicator_flash(&mut self, start: u32, end: u32);
+	fn hide_indicators(&mut self);
+	/*
 
 SCI_SETINDICATORCURRENT(int indicator)
 SCI_GETINDICATORCURRENT → int
