@@ -9,15 +9,19 @@ path = "src/lib.rs"
 
 [dependencies]
 plygui-api = {version = "0.0.1", path = "../plygui-api"}
-plygui-win32 = {version = "0.0.1", path = "../plygui-win32"}
-winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "mmeapi", "oleauto"] }
+#plygui-win32 = {version = "0.0.1", path = "../plygui-win32"}
+#winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "mmeapi", "oleauto"] }
 lazy_static = "~0.2"
 scintilla-sys = {version = "4.0.2", path = "../scintilla-sys-rs"}
+plygui-cocoa = { version = "0.0.1", path = "../plygui-cocoa"}
+cocoa = "~0.9"
+core-foundation = "~0.3"
+objc = "~0.2"
 
 [features]
 win32 = ["scintilla-sys/win32"]
 gtk = []
 qt = []
 curses = ["scintilla-sys/curses"]
-cocoa = []
-default = ["win32"]
+cocoaa = []
+default = ["cocoaa"]
