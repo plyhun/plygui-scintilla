@@ -40,7 +40,7 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
     fn delete_range(&mut self, start: u32, len: u32);
     fn clear_document_style(&mut self);
     fn char_at(&self, pos: u32) -> char;
-    fn style_at(&self, pos: u32) -> u32;
+    fn style_at_pos(&self, pos: u32) -> StyleId;
     fn styled_text<'a>(&'a self, start: u32, end: u32) -> Cow<'a, str>;
     fn release_all_extended_styles(&mut self);
     //fn allocate_extended_styles(&mut self, count: u32) -> bool;
@@ -267,46 +267,18 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
     
     fn end_styled(&self) -> u32;
     fn start_styling(&mut self, start: u32);
-    fn set_styling(&mut self, len: u32, style: u32);
+    fn set_styling(&mut self, len: u32, style: StyleId);
     fn set_styling_ex(&mut self, len: u32, styles: &str);
-    fn set_idle_styling(&mut self, style: u32);
+    fn set_idle_styling(&mut self, style: StyleId);
     fn idle_styling(&self) -> u32;
     fn set_line_state(&mut self, line: u32, state: u32);
     fn line_state(&self, line: u32) -> u32;
     fn max_line_state(&self) -> u32;
     
-    fn style_reset_default(&mut self);
-    fn style_clear_all(&mut self);
-    fn style_set_font(&mut self, style: u32, name: &str);
-    fn style_font<'a>(&'a self, style: u32) -> Cow<'a, str>;
-    fn style_set_size(&mut self, style: u32, size: u32);
-    fn style_size(&self, style: u32) -> u32;
-    fn style_set_size_fractional(&mut self, style: u32, hundreth_points: u32);
-    fn style_size_fractional(&self, style: u32) -> u32;
-    fn style_set_bold(&mut self, style: u32, enabled: bool);
-    fn style_is_bold(&self, style: u32) -> bool;
-    fn style_set_italic(&mut self, style: u32, enabled: bool);
-    fn style_is_italic(&self, style: u32) -> bool;
-    fn style_set_underline(&mut self, style: u32, enabled: bool);
-    fn style_is_underline(&self, style: u32) -> bool;
-    fn style_set_weight(&mut self, style: u32, weight: u32);
-    fn style_weight(&self, style: u32) -> u32;
-    fn style_set_foreground(&mut self, style: u32, color: Color);
-    fn style_foreground(&self, style: u32) -> Color;
-    fn style_set_background(&mut self, style: u32, color: Color);
-    fn style_background(&self, style: u32) -> Color;
-    fn style_set_eol_filled(&mut self, style: u32, enabled: bool);
-    fn style_is_eol_filled(&self, style: u32) -> bool;
-    fn style_set_charset(&mut self, style: u32, charset: u32);
-    fn style_charset(&self, style: u32) -> u32;
-    fn style_set_case(&mut self, style: u32, case: u32);
-    fn style_case(&self, style: u32) -> u32;
-    fn style_set_visible(&mut self, style: u32, enabled: bool);
-    fn style_is_visible(&self, style: u32) -> bool;
-    fn style_set_changeable(&mut self, style: u32, enabled: bool);
-    fn style_is_changeable(&self, style: u32) -> bool;
-    fn style_set_hotspot(&mut self, style: u32, enabled: bool);
-    fn style_is_hotspot(&self, style: u32) -> bool;
+    fn reset_default_style(&mut self);
+    fn clear_all_styles(&mut self);
+    fn style_at(&self, id: StyleId) -> &Style;
+	fn style_at_mut(&mut self, id: StyleId) -> &mut Style;
     
     fn set_selection_foreground(&mut self, use_setting: bool, color: Color);
     fn set_selection_background(&mut self, use_setting: bool, color: Color);
@@ -328,9 +300,9 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
     fn is_caret_line_visible_always(&self) -> bool;
     fn set_caret_period(&mut self, period_ms: u32);
     fn caret_period(&self) -> u32;
-    fn set_caret_style(&mut self, style: u32);
-    fn caret_style(&self) -> u32;
-    fn set_caret_width(&mut self, style: u32);
+    fn set_caret_style(&mut self, style: StyleId);
+    fn caret_style(&self) -> StyleId;
+    fn set_caret_width(&mut self, style: StyleId);
     fn caret_width(&self) -> u32;
     fn set_hotspot_active_foreground(&mut self, use_setting: bool, color: Color);
     fn hotspot_active_foreground(&self) -> Color;
@@ -352,48 +324,34 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
     
     fn set_margins(&mut self, margins: u32);
     fn margins(&self) -> u32;
-    fn margin_set_type(&mut self, margin: u32, type_: u32);
-    fn margin_type(&self, margin: u32) -> u32;
-    fn set_margin_width(&mut self, margin: u32, width: u32);
-    fn margin_width(&self, margin: u32) -> u32;
-    fn set_margin_mask(&mut self, margin: u32, mask: u32);
-    fn margin_mask(&self, margin: u32) -> u32;
-    fn set_margin_sensitive(&mut self, margin: u32, enabled: bool);
-    fn margin_is_sensitive(&self, margin: u32) -> bool;
-    fn set_margin_cursor(&mut self, margin: u32, cursor: u32);
-    fn margin_cursor(&self, cursor: u32) -> u32;
-    fn set_margin_background(&mut self, margin: u32, color: Color);
-    fn margin_background(&self, margin: u32) -> Color;
-    fn set_margin_left(&mut self, margin: u32, width: u32);
-    fn margin_left(&self, margin: u32) -> u32;
-    fn set_margin_right(&mut self, margin: u32, width: u32);
-    fn margin_right(&self, margin: u32) -> u32;
-    fn set_fold_margin_background(&mut self, use_setting: bool, color: Color);
+    fn margin_at(&self, id: MarginId) -> Option<&Margin>;
+	fn margin_at_mut(&mut self, id: MarginId) -> Option<&mut Margin>;
+	fn set_fold_margin_background(&mut self, use_setting: bool, color: Color);
     fn set_fold_margin_foreground(&mut self, use_setting: bool, color: Color);
     fn set_margin_text(&mut self, line: u32, text: &str);
     fn margin_text<'a>(&'a self, line: u32) -> Cow<'a, str>;
-    fn set_margin_style(&mut self, line: u32, style: u32);
+    fn set_margin_style(&mut self, line: u32, style: StyleId);
     fn margin_style(&self, line: u32) -> u32;
     fn set_margin_styles(&mut self, line: u32, styles: &str);
     fn margin_styles<'a>(&'a self, line: u32) -> Cow<'a, str>;
     fn clear_all_margin_text(&mut self);
-    fn set_margin_style_offset(&mut self, style: u32);
+    fn set_margin_style_offset(&mut self, style: StyleId);
     fn margin_style_offset(&self) -> u32;
     fn set_margin_options(&mut self, opts: u32);
     fn margin_options(&self) -> u32;
     
-    fn annotation_set_text(&mut self, line: u32, text: &str);
+    fn set_annotation_text(&mut self, line: u32, text: &str);
     fn annotation_text<'a>(&'a self, line: u32) -> Cow<'a, str>;
-    fn annotation_set_style(&mut self, line: u32, style: u32);
-    fn annotation_style(&self) -> u32;
-    fn annotation_set_styles(&mut self, line: u32, styles: &str);
+    fn set_annotation_style(&mut self, line: u32, style: StyleId);
+    fn annotation_style(&self) -> StyleId;
+    fn set_annotation_styles(&mut self, line: u32, styles: &str);
     fn annotation_styles<'a>(&'a self, line: u32) -> Cow<'a, str>;
     fn annotation_lines(&self, line: u32) -> u32;
-    fn annotation_clear_all(&mut self);
-    fn annotation_set_visible(&mut self, enabled: bool);
-    fn annotation_is_visible(&self) -> bool;
-    fn annotation_set_style_offset(&mut self, style: u32);
-    fn annotation_style_offset(&self) -> u32;
+    fn clear_all_annotations(&mut self);
+    fn annotations_visible(&mut self, enabled: bool);
+    fn is_annotations_visible(&self) -> bool;
+    fn set_annotations_style_offset(&mut self, style: StyleId);
+    fn annotations_style_offset(&self) -> u32;
     
     fn set_buffered_draw(&mut self, enabled: bool);
     fn is_buffered_draw(&self) -> bool;
@@ -415,7 +373,7 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
     fn highlight_broken_braces(&mut self, pos: u32);
     fn hightlight_braces_indicator(&mut self, use_setting: bool, indicator: u32);
     fn hightlight_broken_braces_indicator(&mut self, use_setting: bool, indicator: u32);
-    fn brace_match(&self, max_re_style: u32) -> u32;
+    fn brace_match(&self, max_re_style: StyleId) -> u32;
     
     fn set_tab_width(&mut self, width: u32);
     fn tab_width(&self) -> u32;
@@ -437,76 +395,580 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
     fn set_highlight_guide(&mut self, column: u32);
     fn highlight_guide(&self) -> u32;
     
-    fn marker_define(&mut self, number: u32, symbol: u32);
-    fn marker_define_pixmap(&mut self, number: u32, pixmap: &str);
-    fn rgba_image_set_width(&mut self, value: u32);
-    fn rgba_image_set_height(&mut self, value: u32);
-    fn rgba_image_set_scale(&mut self, percent: u32);
-    fn marker_define_rgba_image(&mut self, number: u32, pixels: &str);
-    fn marker_symbol_defined(&self, number: u32) -> u32;
-    fn marker_set_foreground(&mut self, number: u32, color: Color);
-    fn marker_set_background(&mut self, number: u32, color: Color);
-    fn marker_set_background_selected(&mut self, number: u32, color: Color);
+    fn marker_at(&mut self, id: MarkerId) -> &Marker;
+    fn marker_at_mut(&mut self, id: MarkerId) -> &mut Marker;
+    fn set_marker_rgba_image_width(&mut self, value: u32);
+    fn set_marker_rgba_image_height(&mut self, value: u32);
+    fn set_marker_rgba_image_scale(&mut self, percent: u32);
     fn enable_marker_highlight(&mut self, enabled: bool);
-    fn marker_set_alpha(&mut self, number: u32, alpha: u8);
-    fn marker_add(&mut self, line: u32, number: u32) -> u32;
-    fn marker_add_set(&mut self, line: u32, set: u32);
-    fn marker_delete(&mut self, line: u32, number: u32);
-    fn marker_delete_all(&mut self, number: u32);
-    fn marker(&self, line: u32) -> u32;
+    fn add_marker_set(&mut self, line: u32, markers: u32);
+    fn marker_at_line(&self, line: u32) -> &Marker;
+    fn marker_at_line_mut(&mut self, line: u32) -> &mut Marker;
     fn marker_next(&self, line_start: u32, marker_mask: u32) -> u32;
     fn marker_prev(&self, line_start: u32, marker_mask: u32) -> u32;
     fn marker_line_from_handle(&self, handle: u32) -> u32;
     fn marker_delete_handle(&mut self, handle: u32);
-    
-	fn indicator_set_style(&mut self, indicator: u32, style: u32);
-	fn indicator_style(&self, indicator: u32) -> u32;
-	fn indicator_set_foreground(&mut self, indicator: u32, color: Color);
-	fn indicator_foreground(&self, indicator: u32) -> Color;
-	fn indicator_set_alpha(&mut self, indicator: u32, alpha: u8);
-	fn indicator_alpha(&self, indicator: u32) -> u8;
-	fn indicator_set_outline_alpha(&mut self, indicator: u32, alpha: u8);
-	fn indicator_outline_alpha(&self, indicator: u32) -> u8;
-	fn indicator_set_underline(&mut self, indicator: u32, enabled: bool);
-	fn indicator_is_underline(&self, indicator: u32) -> bool;
-	fn indicator_set_hover_style(&mut self, indicator: u32, style: u32);
-	fn indicator_hover_style(&self, indicator: u32) -> u32;
-	fn indicator_set_hover_foreground(&mut self, indicator: u32, color: Color);
-	fn indicator_hover_foreground(&self, indicator: u32) -> Color;
-	fn indicator_set_flags(&mut self, indicator: u32, flags: u32);
-	fn indicator_flags(&self, indicator: u32) -> u32;
 	
-	fn set_current_indicator(&mut self, indicator: u32);
-	fn current_indicator(&self) -> u32;
-	fn set_indicator_value(&mut self, value: u32);
-	fn indicator_value(&self) -> u32;
-	fn fill_indicator_range(&mut self, start: u32, len: u32);
-	fn clear_indicator_range(&mut self, start: u32, len: u32);
-	fn all_indicator_on_for(&mut self, pos: u32);
-	fn indicator_value(&self, indicator: u32, pos: u32) -> u32;
-	fn indicator_start(&self, indicator: u32, pos: u32) -> u32;
-	fn indicator_end(&self, indicator: u32, pos: u32) -> u32;
-	fn find_indicator_show(&mut self, start: u32, end: u32);
-	fn find_indicator_flash(&mut self, start: u32, end: u32);
-	fn hide_indicators(&mut self);
+	fn indicator_at(&self, id: IndicatorId) -> &Indicator;
+	fn indicator_at_mut(&mut self, id: IndicatorId) -> &mut Indicator;	
+	fn current_indicator(&self) -> &CurrentIndicator;
+	fn current_indicator_mut(&mut self) -> &mut CurrentIndicator;
+	
+	fn enabled_indicators(&self, pos: u32) -> u32;
+	fn show_find_indicator(&mut self, start: u32, end: u32);
+	fn flash_find_indicator(&mut self, start: u32, end: u32);
+	fn hide_find_indicator(&mut self);
+	
+	fn show_autocomplete_separated_str(&mut self, variants: &str);
+	//fn show_autocomplete_list<T, S: AsRef<str>>(&mut str, len: u32, variants: T) where T: IntoIterator<Item=S>;
+	fn cancel_autocomplete(&mut self);
+	fn is_autocomplete_active(&self) -> bool;
+	fn autocomplete_start_position(&self) -> u32;
+	fn complete_autocomplete(&mut self);
+	fn autocomplete_stops(&mut self, charset: &str);
+	fn set_autocomplete_separator(&mut self, separator: char);
+	fn autocomplete_separator(&self) -> char;
+	fn autocomplete_select_matched(&mut self, variant: &str);
+	fn current_autocomplete_item_index(&self) -> u32;
+	fn current_autocomplete_item_text<'a>(&self) -> Cow<'a, str>;
+	fn set_autocomplete_cancel_at_start(&mut self, enabled: bool);
+	fn is_autocomplete_cancel_at_start(&self) -> bool;
+	fn set_fillups(&mut self, chars: &str);
+	fn set_autocomplete_single_select(&mut self, enabled: bool);
+	fn is_autocomplete_single_select(&self) -> bool;
+	fn set_autocomplete_ignore_case(&mut self, enabled: bool);
+	fn is_autocomplete_ignore_case(&self) -> bool;
+	fn set_autocomplete_case_insensitive_behavior(&mut self, value: CaseInsensitiveBehavior);
+	fn autocomplete_case_insensitive_behavior(&self) -> CaseInsensitiveBehavior;
+	fn set_autocomplete_multiselection_mode(&mut self, mode: AutocompleteMultiselectionMode);
+	fn autocomplete_multiselection_mode(&self) -> AutocompleteMultiselectionMode;
+	fn set_autocomplete_order(&mut self, order: AutocompleteOrder);
+	fn autocomplete_order(&self) -> AutocompleteOrder;
+	fn set_autocomplete_autohide(&mut self, enabled: bool);
+	fn is_autocomplete_autohide(&self) -> bool;
+	fn set_autocomplete_drop_rest_of_word(&mut self, enabled: bool);
+	fn is_autocomplete_drop_rest_of_word(&self) -> bool;
+	fn register_autocomplete_image(&mut self, type_: u32, data: AutocompleteImage);
+	fn clear_registered_autocomplete_images(&mut self);
+	fn set_autocomplete_type_separator(&mut self, c: char);
+	fn autocomplete_type_separator(&self) -> char;
+	fn set_autocomplete_max_visible_rows_height(&mut self, value: u32);
+	fn autocomplete_max_visible_rows_height(&self) -> u32;
+	fn set_autocomplete_max_visible_chars_width(&mut self, value: u32);
+	fn autocomplete_max_visible_chars_width(&self) -> u32;
+	fn show_autocomplete_user_list(&mut self, type_: u32, variants: &str);
+	
+	fn show_call_tip(&mut self, message: &str);
+	fn cancel_call_tip(&mut self);
+	fn is_call_tip_active(&self) -> bool;
+	fn call_tip_start_position(&self) -> u32;
+	fn set_call_tip_start_position(&mut self, pos: u32);
+	fn set_call_tip_highlight(&mut self, start: u32, end: u32);
+	fn set_call_tip_foreground(&mut self, color: Color);
+	fn set_call_tip_background(&mut self, color: Color);
+	fn set_call_tip_highlight_foreground(&mut self, color: Color);
+	fn use_call_tip_style(&mut self, tab_size: u32);
+	fn set_call_tip_above_text(&mut self, enabled: bool);
+	
+	fn assign_command_key<Kd: KeyDefinition, Kc: KeyCommand>(&mut self, definition: kd, command: Kc);
+	fn clear_command_key<Kd: KeyDefinition>(&mut self, definition: kd);
+	fn clear_all_command_keys(&mut self);
+	
+	
+	fn use_popup(&mut self, mode: PopUpMode);
+	
+	fn start_macro_recording(&mut self);
+	fn stop_macro_recording(&mut self);
+	
+	fn format_range(&mut self, draw: bool, fr: &Sci_RangeToFormat) -> u32;
+	fn set_print_magnification(&mut self, m: i32);
+	fn print_magnification(&self) -> i32;
+	fn set_print_color_mode(&mut self, mode: PrintColorMode);
+	fn print_color_mode(&self) -> PrintColorMode;
+	fn set_print_wrap_mode(&mut self, mode: PrintWrapMode);
+	fn print_wrap_mode(&self) -> PrintWrapMode;
+	
+	fn new_document(&mut self, size_in_bytes: usize, options: DocumentOptions) -> Box<Document>; // TODO `impl Trait` when available
+	fn replace_current_document(&mut self, d: Box<Document>) -> Box<Document>; // TODO `impl Trait` when available
 	/*
-
-SCI_SETINDICATORCURRENT(int indicator)
-SCI_GETINDICATORCURRENT → int
-SCI_SETINDICATORVALUE(int value)
-SCI_GETINDICATORVALUE → int
-SCI_INDICATORFILLRANGE(int start, int lengthFill)
-SCI_INDICATORCLEARRANGE(int start, int lengthClear)
-SCI_INDICATORALLONFOR(int pos) → int
-SCI_INDICATORVALUEAT(int indicator, int pos) → int
-SCI_INDICATORSTART(int indicator, int pos) → int
-SCI_INDICATOREND(int indicator, int pos) → int
-SCI_FINDINDICATORSHOW(int start, int end)
-SCI_FINDINDICATORFLASH(int start, int end)
-SCI_FINDINDICATORHIDE
-    */
-    //fn set_margin_width(&mut self, index: usize, width: isize);
+	1. Use SCI_GETDOCPOINTER to get a pointer to the document, doc.
+	2. Use SCI_ADDREFDOCUMENT(0, doc) to increment the reference count.
+	3. Use SCI_SETDOCPOINTER(0, docNew) to set a different document or SCI_SETDOCPOINTER(0, 0) to set a new, empty document.
+	*/
+	
+	fn create_loader(&mut self, options: DocumentOptions) -> Result<Box<Loader>, LoaderError>; // TODO `impl Trait` when available
+	
+	
+	/*
+SCI_VISIBLEFROMDOCLINE(int docLine) → int
+SCI_DOCLINEFROMVISIBLE(int displayLine) → int
+SCI_SHOWLINES(int lineStart, int lineEnd)
+SCI_HIDELINES(int lineStart, int lineEnd)
+SCI_GETLINEVISIBLE(int line) → bool
+SCI_GETALLLINESVISIBLE → bool
+SCI_SETFOLDLEVEL(int line, int level)
+SCI_GETFOLDLEVEL(int line) → int
+SCI_SETAUTOMATICFOLD(int automaticFold)
+SCI_GETAUTOMATICFOLD → int
+SCI_SETFOLDFLAGS(int flags)
+SCI_GETLASTCHILD(int line, int level) → int
+SCI_GETFOLDPARENT(int line) → int
+SCI_SETFOLDEXPANDED(int line, bool expanded)
+SCI_GETFOLDEXPANDED(int line) → bool
+SCI_CONTRACTEDFOLDNEXT(int lineStart) → int
+SCI_TOGGLEFOLD(int line)
+SCI_TOGGLEFOLDSHOWTEXT(int line, const char *text)
+SCI_FOLDDISPLAYTEXTSETSTYLE(int style)
+SCI_FOLDLINE(int line, int action)
+SCI_FOLDCHILDREN(int line, int action)
+SCI_FOLDALL(int action)
+SCI_EXPANDCHILDREN(int line, int level)
+SCI_ENSUREVISIBLE(int line)
+SCI_ENSUREVISIBLEENFORCEPOLICY(int line)
+*/
 }
+pub struct LoaderError;
+pub trait Loader: Drop { // TODO call Release during Drop
+	fn add_data(&mut self, data: &[u8]) -> Result<(), LoaderError>;
+	fn into_document(self) -> Box<Document>;
+}
+pub trait Document: Drop {	
+	// SCI_RELEASEDOCUMENT(<unused>, document *doc) called here during drop
+}
+pub enum DocumentOptions {
+	Default = scintilla_sys::SC_DOCUMENTOPTION_DEFAULT as isize, // 	0 	Standard behaviour
+	NoStyles = scintilla_sys::SC_DOCUMENTOPTION_STYLES_NONE as isize, //	1 	Stop allocation of memory for styles and treat all text as style 0
+}
+pub enum PrintWrapMode {
+	None = scintilla_sys::SC_WRAP_NONE as isize, 
+	Word = scintilla_sys::SC_WRAP_WORD as isize,
+	Char = scintilla_sys::SC_WRAP_CHAR as isize, 
+}
+pub enum PrintColorMode {
+	Normal = scintilla_sys::SC_PRINT_NORMAL as isize, //	0 	Print using the current screen colours. This is the default.
+	InvertLight = scintilla_sys::SC_PRINT_INVERTLIGHT as isize, // 	1 	If you use a dark screen background this saves ink by inverting the light value of all colours and printing on a white background.
+	BlackOnWhite = scintilla_sys::SC_PRINT_BLACKONWHITE as isize, //	2 	Print all text as black on a white background.
+	ColorOnWhite = scintilla_sys::SC_PRINT_COLOURONWHITE as isize, // 	3 	Everything prints in its own colour on a white background.
+	ColorOnWhiteDefaultBackground = scintilla_sys::SC_PRINT_COLOURONWHITEDEFAULTBG as isize, // 	4 	Everything prints in its own colour on a white background except that line numbers use their own background colour.
+}
+pub enum PopUpMode {
+	Never = scintilla_sys::SC_POPUP_NEVER as isize, // 	0 	Never show default editing menu.
+	All = scintilla_sys::SC_POPUP_ALL as isize, // 	1 	Show default editing menu if clicking on scintilla.
+	Text = scintilla_sys::SC_POPUP_TEXT as isize, // 	2 	Show default editing menu only if clicking on text area.
+}
+pub enum KeyCode {
+	Add = scintilla_sys::SCK_ADD as isize, 
+	Back = scintilla_sys::SCK_BACK as isize, 
+	Delete = scintilla_sys::SCK_DELETE as isize, 
+	Divide = scintilla_sys::SCK_DIVIDE as isize, 
+	Down = scintilla_sys::SCK_DOWN as isize, 
+	End = scintilla_sys::SCK_END as isize, 
+	Escape = scintilla_sys::SCK_ESCAPE as isize, 
+	Home = scintilla_sys::SCK_HOME as isize, 
+	Insert = scintilla_sys::SCK_INSERT as isize, 
+	Left = scintilla_sys::SCK_LEFT as isize, 
+	Menu = scintilla_sys::SCK_MENU as isize, 
+	Next = scintilla_sys::SCK_NEXT as isize,
+	PageDown = scintilla_sys::SCK_NEXT as isize, 
+	Prior = scintilla_sys::SCK_PRIOR as isize,
+	PageUp = scintilla_sys::SCK_PRIOR as isize, 
+	Return = scintilla_sys::SCK_RETURN as isize, 
+	Right = scintilla_sys::SCK_RIGHT as isize, 
+	RightWin = scintilla_sys::SCK_RWIN as isize, 
+	Subtract = scintilla_sys::SCK_SUBTRACT as isize, 
+	Tab = scintilla_sys::SCK_TAB as isize, 
+	Up = scintilla_sys::SCK_UP as isize, 
+	Win = scintilla_sys::SCK_WIN as isize,
+}
+pub struct KeyModifier(pub(crate) u32);
+pub mod key_modifier {
+	pub const Alt: super::KeyModifier = KeyModifier(scintilla_sys::SCMOD_ALT as u32);
+	pub const Ctrl: super::KeyModifier = KeyModifier(scintilla_sys::SCMOD_CTRL as u32);
+	pub const Shift: super::KeyModifier = KeyModifier(scintilla_sys::SCMOD_SHIFT as u32);
+	pub const Meta: super::KeyModifier = KeyModifier(scintilla_sys::SCMOD_META as u32);
+	pub const Super: super::KeyModifier = KeyModifier(scintilla_sys::SCMOD_SUPER as u32);
+	pub const None: super::KeyModifier = KeyModifier(scintilla_sys::SCMOD_NONE as u32);
+}
+
+impl ::std::ops::Add for KeyModifier {
+	type Output = KeyModifier;
+    fn add(self, other: KeyModifier) -> KeyModifier {
+		KeyModifier(self.0 | other.0)
+	}
+}
+impl ::std::ops::Sub for KeyModifier {
+	type Output = KeyModifier;
+    fn sub(self, other: KeyModifier) -> KeyModifier {
+		KeyModifier(self.0 & ^other.0)
+	}
+}
+impl ::std::ops::BitOr for KeyModifier {
+	type Output = KeyModifier;
+    fn bit_or(self, other: KeyModifier) -> KeyModifier {
+		KeyModifier(self.0 | other.0)
+	}
+}
+impl ::std::ops::BitAnd for KeyModifier {
+	type Output = KeyModifier;
+    fn bit_and(self, other: KeyModifier) -> KeyModifier {
+		KeyModifier(self.0 & other.0)
+	}
+}
+impl ::std::ops::BitXor for KeyModifier {
+	type Output = KeyModifier;
+    fn bit_xor(self, other: KeyModifier) -> KeyModifier {
+		KeyModifier(self.0 ^ other.0)
+	}
+}
+
+impl ::std::ops::AddAssign for KeyModifier {
+	fn add_assign(&mut self, other: KeyModifier) {
+		self.0 |= other.0;
+	}
+}
+impl ::std::ops::SubAssign for KeyModifier {
+	fn sub_assign(&mut self, other: KeyModifier) {
+		self.0 &= ^other.0;
+	}
+}
+impl ::std::ops::BitOrAssign for KeyModifier {
+	fn bit_or_assign(&mut self, other: KeyModifier) {
+		self.0 |= other.0
+	}
+}
+impl ::std::ops::BitAndAssign for KeyModifier {
+	fn bit_and_assign(&mut self, other: KeyModifier) {
+		self.0 &= other.0;
+	}
+}
+impl ::std::ops::BitXorAssign for KeyModifier {
+	fn bit_xor_assign(&mut self, other: KeyModifier) {
+		self.0 ^= other.0;
+	}
+}
+
+pub trait KeyDefinition {
+	fn exec(self) -> u32;
+}
+impl KeyDefinition for (KeyCode, KeyModifier) {
+	fn exec(self) -> u32 {
+		self.0 as u32 & (self.1 as u32 << 16)
+	}
+}
+impl KeyDefinition for (u8, KeyModifier) {
+	fn exec(self) -> u32 {
+		self.0 as u32 & (self.1 as u32 << 16)
+	}
+}
+
+pub trait KeyCommand {
+	fn exec(self) -> u32;
+}
+impl KeyCommand for KeyboardCommand {
+	fn exec(self) -> u32 {
+		self as u32
+	}
+}
+impl KeyCommand for u32 { // TODO narrow to the unparameterized SCI_* functions list
+	fn exec(self) -> u32 {
+		self as u32
+	}
+}
+
+pub struct StyleId(u8);
+impl From<u8> for StyleId {
+	fn from(a: u8) -> StyleId {
+		StyleId(a)
+	}
+}
+impl From<StyleId> for u8 {
+	fn from(a: StyleId) -> u8 {
+		StyleId.0
+	}
+}
+pub trait Style {
+	fn id(&self) -> StyleId;
+	fn set_font(&mut self, style: StyleId, name: &str);
+    fn font<'a>(&'a self, style: StyleId) -> Cow<'a, str>;
+    fn set_size(&mut self, style: StyleId, size: u32);
+    fn size(&self, style: StyleId) -> u32;
+    fn set_size_fractional(&mut self, style: StyleId, hundreth_points: u32);
+    fn size_fractional(&self, style: StyleId) -> u32;
+    fn set_bold(&mut self, style: StyleId, enabled: bool);
+    fn is_bold(&self, style: StyleId) -> bool;
+    fn set_italic(&mut self, style: StyleId, enabled: bool);
+    fn is_italic(&self, style: StyleId) -> bool;
+    fn set_underline(&mut self, style: StyleId, enabled: bool);
+    fn is_underline(&self, style: StyleId) -> bool;
+    fn set_weight(&mut self, style: StyleId, weight: u32);
+    fn weight(&self, style: StyleId) -> u32;
+    fn set_foreground(&mut self, style: StyleId, color: Color);
+    fn foreground(&self, style: StyleId) -> Color;
+    fn set_background(&mut self, style: StyleId, color: Color);
+    fn background(&self, style: StyleId) -> Color;
+    fn set_eol_filled(&mut self, style: StyleId, enabled: bool);
+    fn is_eol_filled(&self, style: StyleId) -> bool;
+    fn set_charset(&mut self, style: StyleId, charset: u32);
+    fn charset(&self, style: StyleId) -> u32;
+    fn set_case(&mut self, style: StyleId, case: u32);
+    fn case(&self, style: StyleId) -> u32;
+    fn set_visible(&mut self, style: StyleId, enabled: bool);
+    fn is_visible(&self, style: StyleId) -> bool;
+    fn set_changeable(&mut self, style: StyleId, enabled: bool);
+    fn is_changeable(&self, style: StyleId) -> bool;
+    fn set_hotspot(&mut self, style: StyleId, enabled: bool);
+    fn is_hotspot(&self, style: StyleId) -> bool;
+}
+
+pub struct MarginId(u8);
+impl From<u8> for MarginId {
+	//TODO sanity check 
+	fn from(a: u8) -> MarginId {
+		MarginId(a)
+	}
+}
+impl From<MarginId> for u8 {
+	fn from(a: MarginId) -> u8 {
+		MarginId.0
+	}
+}
+pub trait Margin {
+	fn id(&self) -> StyleId;
+	fn set_type(&mut self, type_: u32);
+    fn type_(&self) -> u32;
+    fn set_width(&mut self, width: u32);
+    fn width(&self) -> u32;
+    fn set_mask(&mut self, mask: u32);
+    fn mask(&self) -> u32;
+    fn set_sensitive(&mut self, enabled: bool);
+    fn is_sensitive(&self) -> bool;
+    fn set_cursor(&mut self, cursor: u32);
+    fn cursor(&self) -> u32;
+    fn set_background(&mut self, color: Color);
+    fn background(&self) -> Color;
+    fn set_left(&mut self, width: u32);
+    fn left(&self) -> u32;
+    fn set_right(&mut self, width: u32);
+    fn right(&self) -> u32;
+}
+
+pub struct MarkerId(u8);
+impl From<u8> for MarkerId {
+	//TODO sanity check
+	fn from(a: u8) -> MarkerId {
+		MarkerId(a)
+	}
+}
+impl From<MarkerId> for u8 {
+	fn from(a: MarkerId) -> u8 {
+		MarkerId.0
+	}
+}
+pub struct MarkerError;
+pub trait Marker {
+	fn id(&self) -> MarkerId;
+	fn define_with_mark<T>(&mut self, mark: T) where T: Mark;
+    fn define_with_char(&mut self, c: char);
+    fn define_with_pixmap(&mut self, number: u32, pixmap: &str);    
+    
+	fn define_rgba_image(&mut self, pixels: &str);
+    fn symbol_defined(&self) -> u32;
+    fn set_foreground(&mut self, color: Color);
+    fn set_background(&mut self, color: Color);
+    fn set_background_selected(&mut self, color: Color);
+    fn set_alpha(&mut self, alpha: u8);
+    fn add_to_line(&mut self, line: u32) -> Result<(), MarkerError>;
+    fn delete_from_line(&mut self, line: u32);
+    fn delete_from_all(&mut self);
+}
+pub trait Mark {
+	fn into_arg(self) -> u32;
+}
+pub enum SymbolMark {
+	Circle = scintilla_sys::SC_MARK_CIRCLE as isize, 
+	RoundedRectangle = scintilla_sys::SC_MARK_ROUNDRECT as isize, 
+	Arrow = scintilla_sys::SC_MARK_ARROW as isize, 
+	SmallRectangle = scintilla_sys::SC_MARK_SMALLRECT as isize, 
+	ShortArrow = scintilla_sys::SC_MARK_SHORTARROW as isize, 
+	Empty = scintilla_sys::SC_MARK_EMPTY as isize, 
+	ArrowDown = scintilla_sys::SC_MARK_ARROWDOWN as isize, 
+	Minus = scintilla_sys::SC_MARK_MINUS as isize, 
+	Plus = scintilla_sys::SC_MARK_PLUS as isize, 
+	Arrows = scintilla_sys::SC_MARK_ARROWS as isize, 
+	ThreeDots = scintilla_sys::SC_MARK_DOTDOTDOT as isize, 
+	BackgroundColor = scintilla_sys::SC_MARK_BACKGROUND as isize, 
+	LeftRectangle = scintilla_sys::SC_MARK_LEFTRECT as isize, 
+	FullRectangle = scintilla_sys::SC_MARK_FULLRECT as isize, 
+	Bookmark = scintilla_sys::SC_MARK_BOOKMARK as isize, 
+	Underline = scintilla_sys::SC_MARK_UNDERLINE as isize,
+	
+	BoxMinus = scintilla_sys::SC_MARK_BOXMINUS as isize, 
+	BoxMinusConnected = scintilla_sys::SC_MARK_BOXMINUSCONNECTED as isize, 
+	CircleMinus = scintilla_sys::SC_MARK_BOXPLUS as isize, 
+	BoxPlusConnected = scintilla_sys::SC_MARK_BOXPLUSCONNECTED as isize, 
+	CircleMinus = scintilla_sys::SC_MARK_CIRCLEMINUS as isize, 
+	CircleMinusConnected = scintilla_sys::SC_MARK_CIRCLEMINUSCONNECTED as isize, 
+	CirclePlus = scintilla_sys::SC_MARK_CIRCLEPLUS as isize, 
+	CirclePlusConnected = scintilla_sys::SC_MARK_CIRCLEPLUSCONNECTED as isize, 
+	LCorner = scintilla_sys::SC_MARK_LCORNER as isize, 
+	LCornerCurve = scintilla_sys::SC_MARK_LCORNERCURVE as isize, 
+	TCorner = scintilla_sys::SC_MARK_TCORNER as isize, 
+	TCornerCurve = scintilla_sys::SC_MARK_TCORNERCURVE as isize, 
+	VLine = scintilla_sys::SC_MARK_VLINE as isize
+}
+impl Mark for SymbolMark {
+	fn into_arg(self) -> u32 {
+		self as u32
+	}
+}
+impl Mark for char {
+	fn into_arg(self) -> u32 {
+		(scintilla_sys::SC_MARK_CHARACTER + self as u32)
+	}
+}
+
+pub type IndicatorId = u32;
+pub trait CurrentIndicator: Indicator {
+	fn set_value(&mut self, value: u32);
+	fn value(&self) -> u32;
+	fn fill_range(&mut self, start: u32, len: u32);
+	fn clear_range(&mut self, start: u32, len: u32);	
+}
+pub trait Indicator {
+	fn id(&self) -> IndicatorId;
+	fn set_current(&mut self) -> Option<&mut CurrentIndicator>;
+	fn is_current(&self) -> Option<&CurrentIndicator>;
+	fn is_current_mut(&mut self) -> Option<&mut CurrentIndicator>;
+	fn set_style(&mut self, style: StyleId);
+	fn style(&self) -> StyleId;
+	fn set_foreground(&mut self, color: Color);
+	fn foreground(&self) -> Color;
+	fn set_alpha(&mut self, alpha: u8);
+	fn alpha(&self) -> u8;
+	fn set_outline_alpha(&mut self, alpha: u8);
+	fn outline_alpha(&self) -> u8;
+	fn set_underlined(&mut self, enabled: bool);
+	fn is_underlined(&self) -> bool;
+	fn set_hover_style(&mut self, style: StyleId);
+	fn hover_style(&self) -> StyleId;
+	fn set_hover_foreground(&mut self, color: Color);
+	fn hover_foreground(&self) -> Color;
+	fn set_flags(&mut self, flags: u32);
+	fn flags(&self) -> u32;
+	fn value(&self, pos: u32) -> u32;
+	fn start(&self, pos: u32) -> u32;
+	fn end(&self, pos: u32) -> u32;
+}
+
+pub enum KeyboardCommand {
+	LineDown = scintilla_sys::SCI_LINEDOWN as isize,
+ 	LineDownExtend = scintilla_sys::SCI_LINEDOWNEXTEND as isize,
+ 	LineDownRectExtend = scintilla_sys::SCI_LINEDOWNRECTEXTEND as isize,
+ 	LineScrollDown = scintilla_sys::SCI_LINESCROLLDOWN as isize,
+	LineUp = scintilla_sys::SCI_LINEUP as isize,
+ 	LineUpExtend = scintilla_sys::SCI_LINEUPEXTEND as isize,
+ 	LineUpRectExtend = scintilla_sys::SCI_LINEUPRECTEXTEND as isize,
+ 	LineScrollUp = scintilla_sys::SCI_LINESCROLLUP as isize,
+	ParagraphDown = scintilla_sys::SCI_PARADOWN as isize,
+ 	ParagraphDownExtend = scintilla_sys::SCI_PARADOWNEXTEND as isize,
+ 	ParagraphUp = scintilla_sys::SCI_PARAUP as isize,
+ 	ParagraphUpExtend = scintilla_sys::SCI_PARAUPEXTEND as isize,
+	CharLeft = scintilla_sys::SCI_CHARLEFT as isize,
+ 	CharLeftExtend = scintilla_sys::SCI_CHARLEFTEXTEND as isize,
+ 	CharLeftRectExtend = scintilla_sys::SCI_CHARLEFTRECTEXTEND as isize,
+	CharRight = scintilla_sys::SCI_CHARRIGHT as isize,
+ 	CharRightExtend = scintilla_sys::SCI_CHARRIGHTEXTEND as isize,
+ 	CharRightRectExtend = scintilla_sys::SCI_CHARRIGHTRECTEXTEND as isize,
+	WordLeft = scintilla_sys::SCI_WORDLEFT as isize,
+ 	WordLeftExtend = scintilla_sys::SCI_WORDLEFTEXTEND as isize,
+ 	WordRight = scintilla_sys::SCI_WORDRIGHT as isize,
+ 	WordRightExtend = scintilla_sys::SCI_WORDRIGHTEXTEND as isize,
+	WordLeftEnd = scintilla_sys::SCI_WORDLEFTEND as isize,
+	WordLeftEndExtend = scintilla_sys::SCI_WORDLEFTENDEXTEND as isize,
+ 	WordRightEnd = scintilla_sys::SCI_WORDRIGHTEND as isize,
+ 	WordRightEndExtend = scintilla_sys::SCI_WORDRIGHTENDEXTEND as isize,
+	WordPartLeft = scintilla_sys::SCI_WORDPARTLEFT as isize,
+ 	WordPartLeftExtend = scintilla_sys::SCI_WORDPARTLEFTEXTEND as isize,	WordPartRight = scintilla_sys::SCI_WORDPARTRIGHT as isize,
+ 	WordPartRightExtend = scintilla_sys::SCI_WORDPARTRIGHTEXTEND as isize,
+	Home = scintilla_sys::SCI_HOME as isize,
+ 	HomeExtend = scintilla_sys::SCI_HOMEEXTEND as isize,	HomeRectExtend = scintilla_sys::SCI_HOMERECTEXTEND as isize,
+	HomeDisplay = scintilla_sys::SCI_HOMEDISPLAY as isize,
+ 	HomeDisplayExtend = scintilla_sys::SCI_HOMEDISPLAYEXTEND as isize,
+ 	HomeWrap = scintilla_sys::SCI_HOMEWRAP as isize,
+ 	HomeWrapExtend = scintilla_sys::SCI_HOMEWRAPEXTEND as isize,
+	VcHome = scintilla_sys::SCI_VCHOME as isize,
+ 	VcHomeExtend = scintilla_sys::SCI_VCHOMEEXTEND as isize,
+ 	VcHomeRectExtend = scintilla_sys::SCI_VCHOMERECTEXTEND as isize,
+	VcHomeWrap = scintilla_sys::SCI_VCHOMEWRAP as isize,
+ 	VcHomeWrapExtend = scintilla_sys::SCI_VCHOMEWRAPEXTEND as isize,
+ 	VcHomeDisplay = scintilla_sys::SCI_VCHOMEDISPLAY as isize,
+ 	VcHomeDisplayExtend = scintilla_sys::SCI_VCHOMEDISPLAYEXTEND as isize,
+	LineEnd = scintilla_sys::SCI_LINEEND as isize,
+ 	LineEndExtend = scintilla_sys::SCI_LINEENDEXTEND as isize,
+ 	LineEndRectExtend = scintilla_sys::SCI_LINEENDRECTEXTEND as isize,
+	LineEndDisplay = scintilla_sys::SCI_LINEENDDISPLAY as isize,
+ 	LineEndDisplayExtend = scintilla_sys::SCI_LINEENDDISPLAYEXTEND as isize,
+ 	LineEndWrap = scintilla_sys::SCI_LINEENDWRAP as isize,
+ 	LineEndWrapExtend = scintilla_sys::SCI_LINEENDWRAPEXTEND as isize,
+	DocumentStart = scintilla_sys::SCI_DOCUMENTSTART as isize,
+ 	DocumentStartExtend = scintilla_sys::SCI_DOCUMENTSTARTEXTEND as isize,
+ 	DocumentEnd = scintilla_sys::SCI_DOCUMENTEND as isize,
+ 	DocumentEndExtend = scintilla_sys::SCI_DOCUMENTENDEXTEND as isize,
+	PageUp = scintilla_sys::SCI_PAGEUP as isize,
+ 	PageUpExtend = scintilla_sys::SCI_PAGEUPEXTEND as isize,
+ 	PageUpRectExtend = scintilla_sys::SCI_PAGEUPRECTEXTEND as isize,
+	PageDown = scintilla_sys::SCI_PAGEDOWN as isize,
+ 	PageDownExtend = scintilla_sys::SCI_PAGEDOWNEXTEND as isize,
+ 	PageDownRectExtend = scintilla_sys::SCI_PAGEDOWNRECTEXTEND as isize,
+	StutteredPageUp = scintilla_sys::SCI_STUTTEREDPAGEUP as isize,
+ 	StutteredPageUpExtend = scintilla_sys::SCI_STUTTEREDPAGEUPEXTEND as isize,
+	StutteredPageDown = scintilla_sys::SCI_STUTTEREDPAGEDOWN as isize,
+ 	StutteredPageDownExtend = scintilla_sys::SCI_STUTTEREDPAGEDOWNEXTEND as isize,
+	DeleteBack = scintilla_sys::SCI_DELETEBACK as isize,
+ 	DeleteBackNotLine = scintilla_sys::SCI_DELETEBACKNOTLINE as isize,
+	DeleteWordLeft = scintilla_sys::SCI_DELWORDLEFT as isize,
+ 	DeleteWordRight = scintilla_sys::SCI_DELWORDRIGHT as isize,
+ 	DeleteWordRightEnd = scintilla_sys::SCI_DELWORDRIGHTEND as isize,
+	DeleteLineLeft = scintilla_sys::SCI_DELLINELEFT as isize,
+ 	DeleteLineRight = scintilla_sys::SCI_DELLINERIGHT as isize,
+ 	LineDelete = scintilla_sys::SCI_LINEDELETE as isize,
+	LineCut = scintilla_sys::SCI_LINECUT as isize,
+	LineCopy = scintilla_sys::SCI_LINECOPY as isize,
+ 	LineTranspose = scintilla_sys::SCI_LINETRANSPOSE as isize,
+ 	LineReverse = scintilla_sys::SCI_LINEREVERSE as isize,
+ 	LineDuplicate = scintilla_sys::SCI_LINEDUPLICATE as isize,
+	LowerCase = scintilla_sys::SCI_LOWERCASE as isize,
+ 	UpperCase = scintilla_sys::SCI_UPPERCASE as isize,
+ 	Cancel = scintilla_sys::SCI_CANCEL as isize,
+ 	EditToggleOverType = scintilla_sys::SCI_EDITTOGGLEOVERTYPE as isize,
+	NewLine = scintilla_sys::SCI_NEWLINE as isize,
+ 	FormFeed = scintilla_sys::SCI_FORMFEED as isize,
+ 	Tab = scintilla_sys::SCI_TAB as isize,
+ 	BackTab = scintilla_sys::SCI_BACKTAB as isize,
+	SelectionDuplicate = scintilla_sys::SCI_SELECTIONDUPLICATE as isize,
+ 	VerticalCenterCaret = scintilla_sys::SCI_VERTICALCENTRECARET as isize,
+	MoveSelectedLinesUp = scintilla_sys::SCI_MOVESELECTEDLINESUP as isize,
+ 	MoveSelectedLinesDown = scintilla_sys::SCI_MOVESELECTEDLINESDOWN as isize,
+	ScrollToStart = scintilla_sys::SCI_SCROLLTOSTART as isize,
+ 	ScrollToEnd = scintilla_sys::SCI_SCROLLTOEND as isize,
+}
+
+pub enum AutocompleteImage<'a> {
+	XPM(&'a [u8]),
+	RGBA(&'a [u8]),
+}
+
+pub enum AutocompleteOrder {
+	PreSorted = scintilla_sys::SC_ORDER_PRESORTED as isize,
+	PerformSort = scintilla_sys::SC_ORDER_PERFORMSORT as isize,
+	Custom = scintilla_sys::SC_ORDER_CUSTOM as isize,
+}
+
+pub enum AutocompleteMultiselectionMode {
+	Once = scintilla_sys::SC_MULTIAUTOC_ONCE as isize,
+	Each = scintilla_sys::SC_MULTIAUTOC_EACH as isize,
+}
+
 pub enum IndentationGuides {
     None = scintilla_sys::SC_IV_NONE as isize,
     Real = scintilla_sys::SC_IV_REAL as isize,
@@ -543,6 +1005,11 @@ pub enum Codepage {
     KoreanJohab = 1361isize
 }
 
+pub enum CaseInsensitiveBehavior {
+	Respect = scintilla_sys::SC_CASEINSENSITIVEBEHAVIOUR_RESPECTCASE as isize,
+	Ignore = scintilla_sys::SC_CASEINSENSITIVEBEHAVIOUR_IGNORECASE as isize,
+}
+
 pub struct Color(u32);
 impl Color {
     pub fn from_components(red: u8, green: u8, blue: u8) -> Color {
@@ -564,4 +1031,60 @@ impl From<Color> for (u8, u8, u8) {
             (arg.0 & 0xFF0000) >> 16 as u8 
         )
     }
+}
+
+// TODO move off to mod
+trait ScintillaUnsafe {
+	fn marker_define(&mut self, number: u32, symbol: u32);
+    fn marker_define_pixmap(&mut self, number: u32, pixmap: &str);
+    fn rgba_image_set_width(&mut self, value: u32);
+    fn rgba_image_set_height(&mut self, value: u32);
+    fn rgba_image_set_scale(&mut self, percent: u32);
+    fn marker_define_rgba_image(&mut self, number: u32, pixels: &str);
+    fn marker_symbol_defined(&self, number: u32) -> u32;
+    fn marker_set_foreground(&mut self, number: u32, color: Color);
+    fn marker_set_background(&mut self, number: u32, color: Color);
+    fn marker_set_background_selected(&mut self, number: u32, color: Color);
+    fn enable_marker_highlight(&mut self, enabled: bool);
+    fn marker_set_alpha(&mut self, number: u32, alpha: u8);
+    fn marker_add(&mut self, line: u32, number: u32) -> u32;
+    fn marker_add_set(&mut self, line: u32, set: u32);
+    fn marker_delete(&mut self, line: u32, number: u32);
+    fn marker_delete_all(&mut self, number: u32);
+    fn marker(&self, line: u32) -> u32;
+    fn marker_next(&self, line_start: u32, marker_mask: u32) -> u32;
+    fn marker_prev(&self, line_start: u32, marker_mask: u32) -> u32;
+    fn marker_line_from_handle(&self, handle: u32) -> u32;
+    fn marker_delete_handle(&mut self, handle: u32);
+	
+	fn indicator_set_style(&mut self, indicator: u32, style: StyleId);
+	fn indicator_style(&self, indicator: u32) -> u32;
+	fn indicator_set_foreground(&mut self, indicator: u32, color: Color);
+	fn indicator_foreground(&self, indicator: u32) -> Color;
+	fn indicator_set_alpha(&mut self, indicator: u32, alpha: u8);
+	fn indicator_alpha(&self, indicator: u32) -> u8;
+	fn indicator_set_outline_alpha(&mut self, indicator: u32, alpha: u8);
+	fn indicator_outline_alpha(&self, indicator: u32) -> u8;
+	fn indicator_set_underline(&mut self, indicator: u32, enabled: bool);
+	fn indicator_is_underline(&self, indicator: u32) -> bool;
+	fn indicator_set_hover_style(&mut self, indicator: u32, style: StyleId);
+	fn indicator_hover_style(&self, indicator: u32) -> u32;
+	fn indicator_set_hover_foreground(&mut self, indicator: u32, color: Color);
+	fn indicator_hover_foreground(&self, indicator: u32) -> Color;
+	fn indicator_set_flags(&mut self, indicator: u32, flags: u32);
+	fn indicator_flags(&self, indicator: u32) -> u32;
+	
+	fn set_current_indicator(&mut self, indicator: u32);
+	fn current_indicator(&self) -> u32;
+	fn set_indicator_value(&mut self, value: u32);
+	fn indicator_value(&self) -> u32;
+	fn fill_indicator_range(&mut self, start: u32, len: u32);
+	fn clear_indicator_range(&mut self, start: u32, len: u32);
+	fn all_indicator_on_for(&mut self, pos: u32);
+	fn indicator_value(&self, indicator: u32, pos: u32) -> u32;
+	fn indicator_start(&self, indicator: u32, pos: u32) -> u32;
+	fn indicator_end(&self, indicator: u32, pos: u32) -> u32;
+	fn find_indicator_show(&mut self, start: u32, end: u32);
+	fn find_indicator_flash(&mut self, start: u32, end: u32);
+	fn hide_indicators(&mut self);
 }
