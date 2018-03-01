@@ -9,15 +9,18 @@ path = "src/lib.rs"
 
 [dependencies]
 plygui-api = {version = "0.0.1", path = "../plygui-api"}
-plygui-win32 = {version = "0.0.1", path = "../plygui-win32"}
-winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "mmeapi", "oleauto"] }
-lazy_static = "~0.2"
 scintilla-sys = {version = "4.0.2", path = "../scintilla-sys-rs"}
+lazy_static = "~0.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+plygui-win32 = {version = "0.0.1", path = "../plygui-win32", optional = true}
+winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "imm", "oleauto"], optional = true }
 
 [features]
-win32 = ["scintilla-sys/win32"]
+win32 = ["scintilla-sys/win32", "plygui-win32", "winapi"]
 gtk = []
-qt = []
+qt5 = []
 curses = ["scintilla-sys/curses"]
 cocoa = []
-default = ["win32"]
+native = ["win32", "cocoa", "qt5"]
+default = ["native"]
