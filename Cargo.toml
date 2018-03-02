@@ -9,6 +9,7 @@ path = "src/lib.rs"
 
 [dependencies]
 plygui-api = {version = "0.0.1", path = "../plygui-api"}
+scintilla-sys = {version = "*", path = "../scintilla-sys-rs"}
 lazy_static = "~0.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
@@ -25,7 +26,7 @@ objc = "~0.2"
 win32 = ["scintilla-sys/win32"]
 gtk = []
 qt5 = []
-curses = ["scintilla-sys/curses"]
-cocoaa = []
-native = ["win32", "cocoa", "qt5"]
+curses = []
+cocoa_ = ["scintilla-sys/cocoa"]
+native = ["win32", "cocoa_", "qt5"]
 default = ["native"]
