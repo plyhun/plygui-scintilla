@@ -5,9 +5,9 @@ use plygui_api::traits::{UiControl, UiHasLayout, UiMember, UiContainer};
 
 use plygui_cocoa::common;
 
-use self::cocoa::foundation::{NSString, NSRect, NSSize, NSPoint};
+use self::cocoa::foundation::{NSRect, NSSize, NSPoint};
 use self::cocoa::base::id;
-use objc::runtime::{Class, Object, Sel};
+use objc::runtime::{Object, Class};
 use objc::declare::ClassDecl;
 
 use std::mem;
@@ -18,7 +18,7 @@ lazy_static! {
 	static ref WINDOW_CLASS: common::RefClass = unsafe { register_window_class() };
 }
 
-const BASE_CLASS: &str = "Scintilla";
+const BASE_CLASS: &str = "ScintillaView";
 
 #[repr(C)]
 pub struct Scintilla {
@@ -118,6 +118,14 @@ impl development::UiDrawable for Scintilla {
 	            frame.origin = NSPoint::new(x as f64, (ph as i32 - y - self.base.measured_size.1 as i32) as f64);
 	            msg_send![self.base.control, setFrame: frame];
 	        }
+    		if let Some(ref mut cb) = self.base.h_resize {
+	            unsafe {
+	                let object: &Object = mem::transmute(self.base.control);
+	                let saved: *mut c_void = *object.get_ivar(common::IVAR);
+	                let mut ll2: &mut Scintilla = mem::transmute(saved);
+	                (cb.as_mut())(ll2, self.base.measured_size.0, self.base.measured_size.1);
+	            }
+	        }
     	}
     }
     fn measure(&mut self, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
@@ -179,8 +187,8 @@ impl UiControl for Scintilla {
 
         	(&mut *self.base.control).set_ivar(common::IVAR, self as *mut _ as *mut ::std::os::raw::c_void);
         	
-        	let fn_ptr: id = msg_send![self.base.control, iMessage:SCI_GETDIRECTFUNCTION wParam:0 lParam:0];
-        	let self_ptr: id = msg_send![self.base.control, iMessage:SCI_GETDIRECTPOINTER wParam:0 lParam:0];
+        	let fn_ptr: id = msg_send![self.base.control, message:SCI_GETDIRECTFUNCTION wParam:0 lParam:0];
+        	let self_ptr: id = msg_send![self.base.control, message:SCI_GETDIRECTPOINTER wParam:0 lParam:0];
         	
             self.fn_ptr = Some(mem::transmute(fn_ptr));
             self.self_ptr = Some(mem::transmute(self_ptr));
