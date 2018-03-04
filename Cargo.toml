@@ -12,21 +12,27 @@ plygui-api = {version = "0.0.1", path = "../plygui-api"}
 scintilla-sys = {version = "*", path = "../scintilla-sys-rs"}
 lazy_static = "~0.2"
 
+plygui-qt = {version = "0.0.1", path = "../plygui-qt", optional = true}
+qt_core = {version = "~0.2", optional = true}
+qt_gui = {version = "~0.2", optional = true}
+qt_widgets = {version = "~0.2", optional = true}
+qt_core_custom_events = {version = "*", path = "../qt_core_custom_events", optional = true}
+
 [target.'cfg(target_os = "windows")'.dependencies]
-plygui-win32 = {version = "0.0.1", path = "../plygui-win32"}
-winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "imm", "oleauto"]}
+plygui-win32 = {version = "0.0.1", path = "../plygui-win32", optional = true}
+winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "imm", "oleauto"], optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-plygui-cocoa = { version = "0.0.1", path = "../plygui-cocoa"}
-cocoa = "~0.9"
-core-foundation = "~0.3"
-objc = "~0.2"
+plygui-cocoa = { version = "0.0.1", path = "../plygui-cocoa", optional = true}
+cocoa = {version = "~0.9", optional = true}
+core-foundation = {version = "~0.3", optional = true}
+objc = {version = "~0.2", optional = true}
 
 [features]
-win32 = ["scintilla-sys/win32"]
+win32 = ["scintilla-sys/win32","winapi"]
 gtk = []
-qt5 = []
+qt5 = ["scintilla-sys/qt5","plygui-qt","qt_core","qt_gui","qt_widgets","qt_core_custom_events"]
 curses = []
-cocoa_ = ["scintilla-sys/cocoa"]
+cocoa_ = ["scintilla-sys/cocoa","cocoa","core-foundation","objc"]
 native = ["win32", "cocoa_", "qt5"]
 default = ["native"]

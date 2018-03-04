@@ -30,6 +30,20 @@ extern crate core_foundation;
 #[cfg(target_os="macos")]
 pub use lib_cocoa::Scintilla;
 
+#[cfg(feature = "qt5")]
+mod lib_qt;
+#[macro_use]
+#[cfg(feature = "qt5")]
+extern crate plygui_qt;
+#[cfg(feature = "qt5")]
+extern crate qt_core;
+#[cfg(feature = "qt5")]
+extern crate qt_widgets;
+#[cfg(feature = "qt5")]
+extern crate qt_gui;
+#[cfg(feature = "qt5")]
+pub use lib_qt::Scintilla;
+
 pub const MEMBER_ID_SCINTILLA: &str = "Scintilla";
 
 pub trait UiScintilla: plygui_api::traits::UiControl {

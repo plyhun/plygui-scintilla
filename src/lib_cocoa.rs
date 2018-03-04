@@ -196,6 +196,8 @@ impl UiControl for Scintilla {
     }
     fn on_removed_from_container(&mut self, _: &UiContainer) {
         unsafe { self.base.on_removed_from_container(); }
+        self.fn_ptr = None;
+        self.self_ptr = None;
     }	
 
     fn parent(&self) -> Option<&types::UiMemberBase> {
