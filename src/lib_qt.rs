@@ -28,7 +28,7 @@ impl Scintilla {
     pub fn new() -> Box<Scintilla> {
         let mut sc = Box::new(Scintilla {
                      base: common::QtControlBase::with_params(
-		                     	unsafe {(&mut *ScintillaEditBase::new()).static_cast_mut() as &mut common::QWidget},
+		                     	(&mut *ScintillaEditBase::new()).static_cast_mut() as &mut common::QWidget,
 		                     	invalidate_impl,
                              	development::UiMemberFunctions {
 		                             fn_member_id: member_id,
