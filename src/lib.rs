@@ -498,19 +498,19 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
 	
 	fn create_loader(&mut self, options: DocumentOptions) -> Result<Box<Loader>, LoaderError>; // TODO `impl Trait` when available
 	
-	
+	fn visilble_from_docline(&self, doc_line: u32) -> Result<u32, DocLineError>;
+	fn docline_from_visible(&self, display_line: u32) -> u32;
+	fn show_lines(&mut self, start: u32, end: u32);
+	fn hide_lines(&mut self, start: u32, end: u32);
+	fn is_line_visible(&self, line: u32) -> bool;
+	fn are_all_lines_visible(&self) -> bool;
+	fn set_fold_level(&mut self, line: u32, level: u32);
+	fn fold_level(&self, line: u32) -> u32;
+	fn set_auto_fold(&mut self, autofold: AutoFold);
+	fn auto_fold(&self) -> AutoFold;
+	fn set_fold_flags(&mut self, flags: FoldFlags);
 	/*
-SCI_VISIBLEFROMDOCLINE(int docLine) → int
-SCI_DOCLINEFROMVISIBLE(int displayLine) → int
-SCI_SHOWLINES(int lineStart, int lineEnd)
-SCI_HIDELINES(int lineStart, int lineEnd)
-SCI_GETLINEVISIBLE(int line) → bool
-SCI_GETALLLINESVISIBLE → bool
-SCI_SETFOLDLEVEL(int line, int level)
-SCI_GETFOLDLEVEL(int line) → int
-SCI_SETAUTOMATICFOLD(int automaticFold)
-SCI_GETAUTOMATICFOLD → int
-SCI_SETFOLDFLAGS(int flags)
+
 SCI_GETLASTCHILD(int line, int level) → int
 SCI_GETFOLDPARENT(int line) → int
 SCI_SETFOLDEXPANDED(int line, bool expanded)
@@ -527,6 +527,26 @@ SCI_ENSUREVISIBLE(int line)
 SCI_ENSUREVISIBLEENFORCEPOLICY(int line)
 */
 }
+pub struct AutoFold(pub(crate) u32); // TODO bitfields
+pub mod auto_fold {
+	const Show: super::AutoFold = AutoFold(scintilla_sys::SC_AUTOMATICFOLD_SHOW as u32);
+	const Click: super::AutoFold = AutoFold(scintilla_sys::SC_AUTOMATICFOLD_CLICK as u32);
+	const Change: super::AutoFold = AutoFold(scintilla_sys::SC_AUTOMATICFOLD_CHANGE as u32);
+}
+pub struct FoldFlags(pub(crate) u32); // TODO bitfields
+pub mod fold_flags {
+	const LineBeforeExpanded: super::AutoFold = AutoFold(scintilla_sys::SC_FOLDFLAG_LINEBEFORE_EXPANDED as u32);
+	const LineBeforeContracted: super::AutoFold = AutoFold(scintilla_sys::SC_FOLDFLAG_LINEBEFORE_CONTRACTED as u32);
+	const LineAfterExpanded: super::AutoFold = AutoFold(scintilla_sys::SC_FOLDFLAG_LINEAFTER_EXPANDED as u32);
+	const LineAfterContracted: super::AutoFold = AutoFold(scintilla_sys::SC_FOLDFLAG_LINEAFTER_CONTRACTED as u32);
+	const LevelNumbers: super::AutoFold = AutoFold(scintilla_sys::SC_FOLDFLAG_LEVELNUMBERS as u32);
+	const LineState: super::AutoFold = AutoFold(scintilla_sys::SC_FOLDFLAG_LINESTATE as u32);
+}
+
+pub enum DocLineError {
+	OutsideOfRange,
+}
+
 pub struct LoaderError;
 pub trait Loader: Drop { // TODO call Release during Drop
 	fn add_data(&mut self, data: &[u8]) -> Result<(), LoaderError>;
@@ -580,7 +600,7 @@ pub enum KeyCode {
 	Up = scintilla_sys::SCK_UP as isize, 
 	Win = scintilla_sys::SCK_WIN as isize,
 }
-pub struct KeyModifier(pub(crate) u32);
+pub struct KeyModifier(pub(crate) u32); // TODO bitfields
 pub mod key_modifier {
 	pub const Alt: super::KeyModifier = KeyModifier(scintilla_sys::SCMOD_ALT as u32);
 	pub const Ctrl: super::KeyModifier = KeyModifier(scintilla_sys::SCMOD_CTRL as u32);
