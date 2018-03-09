@@ -509,24 +509,296 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
 	fn set_auto_fold(&mut self, autofold: AutoFold);
 	fn auto_fold(&self) -> AutoFold;
 	fn set_fold_flags(&mut self, flags: FoldFlags);
+	fn last_child(&self, line: u32, level: u32) -> u32;
+	fn fold_parent(&self, line: u32) -> u32;
+	fn set_fold_expanded(&mut self, line: u32, enabled: bool);
+	fn is_fold_expanded(&self, line: u32) -> bool;
+	fn next_contracted_fold(&self, line_start: u32) -> u32;
+	fn toggle_fold(&mut self, line: u32);
+	fn toggle_fold_show_text(&mut self, line: u32, text: &str);
+	fn set_fold_display_text_style(&mut self, style: FoldDisplayTextStyle);
+	fn fold_line(&mut self, line: u32, action: FoldAction);
+	fn fold_children(&mut self, line: u32, action: FoldAction);
+	fn fold_all(&mut self, action: FoldAction);
+	fn expand_children(&mut self, line: u32, level: u32);
+	fn ensure_visible(&mut self, line: u32);
+	fn ensure_visible_enforce_policy(&mut self, line: u32);
+	
+	fn set_wrap_mode(&mut self, value: WrapMode);
+	fn wrap_mode(&self) -> WrapMode;
+	fn set_wrap_visual_flags(&mut self, value: WrapVisualFlags);
+	fn wrap_visual_flags(&self) -> WrapVisualFlags;
+	fn set_wrap_visual_flags_location(&mut self, value: WrapVisualFlagsLocation);
+	fn wrap_visual_flags_location(&self) -> WrapVisualFlagsLocation;
+	fn set_indent_mode(&mut self, value: WrapIndentMode);
+	fn wrap_indent_mode(&self) -> WrapIndentMode;
+	fn set_wrap_start_indent(&mut self, value: i32);
+	fn wrap_start_indent(&self) -> i32;
+	fn set_layout_cache(&mut self, value: LayoutCache);
+	fn layout_cache(&self) -> LayoutCache;
+	fn set_layout_cache_mode(&mut self, value: LayoutCacheMode);
+	fn layout_cache_mode(&self) -> LayoutCacheMode;
+	fn set_position_cache_size(&mut self, value: u32);
+	fn position_cache_size(&self) -> u32;
+	fn line_split(&mut self, pixel_width: u32);
+	fn lines_join(&mut self);
+	fn wrap_count(&self, doc_line: u32) -> u32;
+	
+	fn zoom_in(&mut self);
+	fn zoom_out(&mut self);
+	fn set_zoom(&mut self, points: i32);
+	fn zoom(&self) -> i32;
+	
+	fn set_edge_mode(&mut self, value: EdgeMode);
+	fn edge_mode(&self) -> EdgeMode;
+	fn set_edge_column(&mut self, column: u32);
+	fn edge_column(&self) -> u32;
+	fn set_edge_color(&mut self, color: Color);
+	fn edge_color(&self) -> Color;
+	fn multi_edge_add_line(&mut self, column: u32, color: Color);
+	fn multi_edge_clear_all(&mut self);
+	
+	fn set_accessibility(&mut self, value: Accessibility);
+	fn accessibility(&self) -> Accessibility;
+	
+	fn set_lexer(&mut self, lexer: T) where T: Lexer;
+	fn lexer(&self) -> PredefinedLexer; // TODO what else?
+	fn set_lexer_language(&mut self, name: &str);
+	fn lexer_language<'a>(&'a self) -> Cow<'a, str>;
+	fn load_lexer_library(&mut self, path: P) where P: AsRef<Path>;
+	fn colorize(&mut self, start: u32, end: u32);
+	fn change_lexer_state(&mut self, start: u32, end: u32);
+	fn property_names<'a>(&'a self) -> &'a [Cow<'a, str>];
+	fn property_type(&self, name: &str) -> Property;
+	fn describe_property<'a>(&'a self, name: &str) -> Cow<'a, str>
+	fn set_property(&mut self, key: &str, value: Property);
+	fn property(&self, key: &str) -> Property;
+	fn property_expanded(&self, key: &str) -> Property;
+	fn describe_keyword_sets<'a>(&'a self) -> &'a[Cow<'a, str>];
+	fn set_keywords(&mut self, keyword_set: u32, keywords: &str);
+	fn sub_style_bases<'a>(&'a self) -> &'a[StyleId];
+	fn distance_to_secondary_styles(&self) -> u32;
+	fn allocate_sub_styles(&mut self, style_base: u32, number: u32);
+	fn free_sub_styles(&mut self);
+	fn sub_styles_start(&self, style_base: u32) -> u32;
+	fn sub_styles_len(&self, style_base: u32) -> u32;	
+	fn style_from_sub_style(&self, sub_style: StyleId) -> StyleId;
+	fn primary_style_from_style(&self, style: StyleId) -> StyleId;
+	fn set_identifiers(&mut self, style: StyleId, value: &str);	
+	unsafe fn private_lexer_call(&mut self, operation: u32, pointer: *mut c_void);
+	fn named_styles(&self) -> u32;
+	fn style_name<'a>(&'a self, style: StyleId) -> Cow<'a, str>;
+	fn style_tag<'a>(&'a self, style: StyleId) -> Cow<'a, str>;
+	fn style_description<'a>(&'a self, style: StyleId) -> Cow<'a, str>;
 	/*
 
-SCI_GETLASTCHILD(int line, int level) → int
-SCI_GETFOLDPARENT(int line) → int
-SCI_SETFOLDEXPANDED(int line, bool expanded)
-SCI_GETFOLDEXPANDED(int line) → bool
-SCI_CONTRACTEDFOLDNEXT(int lineStart) → int
-SCI_TOGGLEFOLD(int line)
-SCI_TOGGLEFOLDSHOWTEXT(int line, const char *text)
-SCI_FOLDDISPLAYTEXTSETSTYLE(int style)
-SCI_FOLDLINE(int line, int action)
-SCI_FOLDCHILDREN(int line, int action)
-SCI_FOLDALL(int action)
-SCI_EXPANDCHILDREN(int line, int level)
-SCI_ENSUREVISIBLE(int line)
-SCI_ENSUREVISIBLEENFORCEPOLICY(int line)
+SCI_GETSUBSTYLEBASES(<unused>, char *styles) → int
+SCI_DISTANCETOSECONDARYSTYLES → int
+SCI_ALLOCATESUBSTYLES(int styleBase, int numberStyles) → int
+SCI_FREESUBSTYLES
+SCI_GETSUBSTYLESSTART(int styleBase) → int
+SCI_GETSUBSTYLESLENGTH(int styleBase) → int
+SCI_GETSTYLEFROMSUBSTYLE(int subStyle) → int
+SCI_GETPRIMARYSTYLEFROMSTYLE(int style) → int
+SCI_SETIDENTIFIERS(int style, const char *identifiers)
+SCI_PRIVATELEXERCALL(int operation, int pointer) → int
+SCI_GETNAMEDSTYLES → int
+SCI_NAMEOFSTYLE(int style, char *name) → int
+SCI_TAGSOFSTYLE(int style, char *tags) → int
+SCI_DESCRIPTIONOFSTYLE(int style, char *description) → int
 */
 }
+pub enum Property {
+	Bool(bool), 
+	Int(isize), 
+	String(String),
+}
+pub trait Lexer {
+	fn to_value(self) -> isize;
+}
+impl Lexer for PredefinedLexer {
+	fn to_value(self) -> isize { self as isize }
+}
+pub enum PredefinedLexer {
+	Container = scintilla_sys::SCLEX_CONTAINER as isize,
+	Null = scintilla_sys::SCLEX_NULL as isize,
+	Python = scintilla_sys::SCLEX_PYTHON as isize,
+	Cpp = scintilla_sys::SCLEX_CPP as isize,
+	Html = scintilla_sys::SCLEX_HTML as isize,
+	Xml = scintilla_sys::SCLEX_XML as isize,
+	Perl = scintilla_sys::SCLEX_PERL as isize,
+	Sql = scintilla_sys::SCLEX_SQL as isize,
+	VisualBasic = scintilla_sys::SCLEX_VB as isize,
+	Properties = scintilla_sys::SCLEX_PROPERTIES as isize,
+	ErrorList = scintilla_sys::SCLEX_ERRORLIST as isize,
+	Makefile = scintilla_sys::SCLEX_MAKEFILE as isize,
+	Batch = scintilla_sys::SCLEX_BATCH as isize,
+	Xcode = scintilla_sys::SCLEX_XCODE as isize,
+	LaTex = scintilla_sys::SCLEX_LATEX as isize,
+	Lua = scintilla_sys::SCLEX_LUA as isize,
+	Diff = scintilla_sys::SCLEX_DIFF as isize,
+	Conf = scintilla_sys::SCLEX_CONF as isize,
+	Pascal = scintilla_sys::SCLEX_PASCAL as isize,
+	Ave = scintilla_sys::SCLEX_AVE as isize,
+	Ada = scintilla_sys::SCLEX_ADA as isize,
+	Lisp = scintilla_sys::SCLEX_LISP as isize,
+	Ruby = scintilla_sys::SCLEX_RUBY as isize,
+	Eiffel = scintilla_sys::SCLEX_EIFFEL as isize,
+	EiffelKw = scintilla_sys::SCLEX_EIFFELKW as isize,
+	Tcl = scintilla_sys::SCLEX_TCL as isize,
+	NnCronTab = scintilla_sys::SCLEX_NNCRONTAB as isize,
+	BullAnt = scintilla_sys::SCLEX_BULLANT as isize,
+	VbScript = scintilla_sys::SCLEX_VBSCRIPT as isize,
+	Baan = scintilla_sys::SCLEX_BAAN as isize,
+	Matlab = scintilla_sys::SCLEX_MATLAB as isize,
+	ScriptOl = scintilla_sys::SCLEX_SCRIPTOL as isize,
+	Asm = scintilla_sys::SCLEX_ASM as isize,
+	CppNoCase = scintilla_sys::SCLEX_CPPNOCASE as isize,
+	Fortran = scintilla_sys::SCLEX_FORTRAN as isize,
+	F77 = scintilla_sys::SCLEX_F77 as isize,
+	Css = scintilla_sys::SCLEX_CSS as isize,
+	Pov = scintilla_sys::SCLEX_POV as isize,
+	Lout = scintilla_sys::SCLEX_LOUT as isize,
+	Escript = scintilla_sys::SCLEX_ESCRIPT as isize,
+	Ps = scintilla_sys::SCLEX_PS as isize,
+	Nsis = scintilla_sys::SCLEX_NSIS as isize,
+	Mmixal = scintilla_sys::SCLEX_MMIXAL as isize,
+	Clw = scintilla_sys::SCLEX_CLW as isize,
+	ClwNoCase = scintilla_sys::SCLEX_CLWNOCASE as isize,
+	Lot = scintilla_sys::SCLEX_LOT as isize,
+	Yaml = scintilla_sys::SCLEX_YAML as isize,
+	Tex = scintilla_sys::SCLEX_TEX as isize,
+	Metapost = scintilla_sys::SCLEX_METAPOST as isize,
+	PowerBasic = scintilla_sys::SCLEX_POWERBASIC as isize,
+	Forth = scintilla_sys::SCLEX_FORTH as isize,
+	Erlang = scintilla_sys::SCLEX_ERLANG as isize,
+	Octave = scintilla_sys::SCLEX_OCTAVE as isize,
+	MsSql = scintilla_sys::SCLEX_MSSQL as isize,
+	VeriLog = scintilla_sys::SCLEX_VERILOG as isize,
+	Kix = scintilla_sys::SCLEX_KIX as isize,
+	Gui4Cli = scintilla_sys::SCLEX_GUI4CLI as isize,
+	Specman = scintilla_sys::SCLEX_SPECMAN as isize,
+	Au3 = scintilla_sys::SCLEX_AU3 as isize,
+	Apdl = scintilla_sys::SCLEX_APDL as isize,
+	Bash = scintilla_sys::SCLEX_BASH as isize,
+	Asn1 = scintilla_sys::SCLEX_ASN1 as isize,
+	Vhdl = scintilla_sys::SCLEX_VHDL as isize,
+	Caml = scintilla_sys::SCLEX_CAML as isize,
+	BlitzBasic = scintilla_sys::SCLEX_BLITZBASIC as isize,
+	PureBasic = scintilla_sys::SCLEX_PUREBASIC as isize,
+	Haskell = scintilla_sys::SCLEX_HASKELL as isize,
+	PhpScript = scintilla_sys::SCLEX_PHPSCRIPT as isize,
+	Tads3 = scintilla_sys::SCLEX_TADS3 as isize,
+	Rebol = scintilla_sys::SCLEX_REBOL as isize,
+	Smalltalk = scintilla_sys::SCLEX_SMALLTALK as isize,
+	Flagship = scintilla_sys::SCLEX_FLAGSHIP as isize,
+	Csound = scintilla_sys::SCLEX_CSOUND as isize,
+	FreeBasic = scintilla_sys::SCLEX_FREEBASIC as isize,
+	InnoSetup = scintilla_sys::SCLEX_INNOSETUP as isize,
+	Opal = scintilla_sys::SCLEX_OPAL as isize,
+	Spice = scintilla_sys::SCLEX_SPICE as isize,
+	D = scintilla_sys::SCLEX_D as isize,
+	Cmake = scintilla_sys::SCLEX_CMAKE as isize,
+	Gap = scintilla_sys::SCLEX_GAP as isize,
+	Plm = scintilla_sys::SCLEX_PLM as isize,
+	Progress = scintilla_sys::SCLEX_PROGRESS as isize,
+	Abaqus = scintilla_sys::SCLEX_ABAQUS as isize,
+	Asymptote = scintilla_sys::SCLEX_ASYMPTOTE as isize,
+	R = scintilla_sys::SCLEX_R as isize,
+	Magik = scintilla_sys::SCLEX_MAGIK as isize,
+	PowerShell = scintilla_sys::SCLEX_POWERSHELL as isize,
+	MySql = scintilla_sys::SCLEX_MYSQL as isize,
+	Po = scintilla_sys::SCLEX_PO as isize,
+	Tal = scintilla_sys::SCLEX_TAL as isize,
+	Cobol = scintilla_sys::SCLEX_COBOL as isize,
+	Tacl = scintilla_sys::SCLEX_TACL as isize,
+	Sorcus = scintilla_sys::SCLEX_SORCUS as isize,
+	PowerPro = scintilla_sys::SCLEX_POWERPRO as isize,
+	Nim = scintilla_sys::SCLEX_NIMROD as isize,
+	Sml = scintilla_sys::SCLEX_SML as isize,
+	Markdown = scintilla_sys::SCLEX_MARKDOWN as isize,
+	Txt2Tags = scintilla_sys::SCLEX_TXT2TAGS as isize,
+	A68k = scintilla_sys::SCLEX_A68K as isize,
+	Modula = scintilla_sys::SCLEX_MODULA as isize,
+	CoffeeScript = scintilla_sys::SCLEX_COFFEESCRIPT as isize,
+	Tcmd = scintilla_sys::SCLEX_TCMD as isize,
+	Avs = scintilla_sys::SCLEX_AVS as isize,
+	Ecl = scintilla_sys::SCLEX_ECL as isize,
+	Oscript = scintilla_sys::SCLEX_OSCRIPT as isize,
+	VisualProlog = scintilla_sys::SCLEX_VISUALPROLOG as isize,
+	LiterateHaskell = scintilla_sys::SCLEX_LITERATEHASKELL as isize,
+	StTxt = scintilla_sys::SCLEX_STTXT as isize,
+	Kvirc = scintilla_sys::SCLEX_KVIRC as isize,
+	Rust = scintilla_sys::SCLEX_RUST as isize,
+	Dmap = scintilla_sys::SCLEX_DMAP as isize,
+	As = scintilla_sys::SCLEX_AS as isize,
+	Dmis = scintilla_sys::SCLEX_DMIS as isize,
+	Registry = scintilla_sys::SCLEX_REGISTRY as isize,
+	Bibtex = scintilla_sys::SCLEX_BIBTEX as isize,
+	Srec = scintilla_sys::SCLEX_SREC as isize,
+	Ihex = scintilla_sys::SCLEX_IHEX as isize,
+	Tehex = scintilla_sys::SCLEX_TEHEX as isize,
+	Json = scintilla_sys::SCLEX_JSON as isize,
+	Edifact = scintilla_sys::SCLEX_EDIFACT as isize,
+	Indent = scintilla_sys::SCLEX_INDENT as isize,
+	Automatic = scintilla_sys::SCLEX_AUTOMATIC as isize,
+}
+
+pub enum Accessibility {
+	Disabled = scintilla_sys::SC_ACCESSIBILITY_DISABLED as isize,
+	Enabled = scintilla_sys::SC_ACCESSIBILITY_ENABLED as isize,
+}
+pub enum EdgeMode {
+	None = scintilla_sys::EDGE_NONE as isize,
+	Line = scintilla_sys::EDGE_LINE as isize,
+	Background = scintilla_sys::EDGE_BACKGROUND as isize,
+	Multiline = scintilla_sys::EDGE_MULTILINE as isize,
+}
+pub enum LayoutCacheMode {
+	None = scintilla_sys::SC_CACHE_NONE as isize,
+	Caret = scintilla_sys::SC_CACHE_CARET as isize,
+	Page = scintilla_sys::SC_CACHE_PAGE as isize,
+	Document = scintilla_sys::SC_CACHE_DOCUMENT as isize,
+}
+pub enum WrapIndentMode {
+	Fixed = scintilla_sys::SC_WRAPINDENT_FIXED as isize,
+	Same = scintilla_sys::SC_WRAPINDENT_SAME as isize,
+	Indent = scintilla_sys::SC_WRAPINDENT_INDENT as isize,
+}
+
+pub struct WrapVisualFlagsLocation(pub(crate) u32); // TODO bitfields
+pub mod wrap_visual_flags_location {
+	const Default: super::WrapVisualFlagsLocation = WrapVisualFlagsLocation(scintilla_sys::SC_WRAPVISUALFLAGLOC_DEFAULT as u32);
+	const EndByText: super::WrapVisualFlagsLocation = WrapVisualFlagsLocation(scintilla_sys::SC_WRAPVISUALFLAGLOC_END_BY_TEXT as u32);
+	const StartByText: super::WrapVisualFlagsLocation = WrapVisualFlagsLocation(scintilla_sys::SC_WRAPVISUALFLAGLOC_START_BY_TEXT as u32);
+}
+
+pub struct WrapVisualFlags(pub(crate) u32); // TODO bitfields
+pub mod wrap_visual_flags {
+	const None: super::WrapVisualFlags = WrapVisualFlags(scintilla_sys::SC_WRAPVISUALFLAG_NONE as u32);
+	const End: super::WrapVisualFlags = WrapVisualFlags(scintilla_sys::SC_WRAPVISUALFLAG_END as u32);
+	const Start: super::WrapVisualFlags = WrapVisualFlags(scintilla_sys::SC_WRAPVISUALFLAG_START as u32);
+	const Margin: super::WrapVisualFlags = WrapVisualFlags(scintilla_sys::SC_WRAPVISUALFLAG_MARGIN as u32);
+}
+pub enum WrapMode {
+	None = scintilla_sys::SC_WRAP_NONE as isize,
+	Word = scintilla_sys::SC_WRAP_WORD as isize, 
+	Char = scintilla_sys::SC_WRAP_CHAR as isize, 
+	Whitespace = scintilla_sys::SC_WRAP_WHITESPACE as isize, 
+}
+
+pub enum FoldAction {
+	Contract = scintilla_sys::SC_FOLDACTION_CONTRACT as isize,
+	Expand = scintilla_sys::SC_FOLDACTION_EXPAND as isize,
+	Toggle = scintilla_sys::SC_FOLDACTION_TOGGLE as isize,
+}
+
+pub enum FoldDisplayTextStyle {
+	Hidden = scintilla_sys::SC_FOLDDISPLAYTEXT_HIDDEN as isize,
+	Standard = scintilla_sys::SC_FOLDDISPLAYTEXT_STANDARD as isize,
+	Boxed = scintilla_sys::SC_FOLDDISPLAYTEXT_BOXED as isize,
+}
+
 pub struct AutoFold(pub(crate) u32); // TODO bitfields
 pub mod auto_fold {
 	const Show: super::AutoFold = AutoFold(scintilla_sys::SC_AUTOMATICFOLD_SHOW as u32);
