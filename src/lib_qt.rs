@@ -28,7 +28,7 @@ impl Scintilla {
     pub fn new() -> Box<Scintilla> {
         let mut sc = Box::new(Scintilla {
                      base: common::QtControlBase::with_params(
-		                     	(&mut *ScintillaEditBase::new()).static_cast_mut() as &mut common::QWidget,
+		                     	unsafe { (&mut *ScintillaEditBase::new().into_raw()).static_cast_mut() as &mut common::QWidget},
 		                     	invalidate_impl,
                              	development::UiMemberFunctions {
 		                             fn_member_id: member_id,
@@ -46,7 +46,6 @@ impl Scintilla {
         	let qo: &mut common::QObject = sc.base.widget.static_cast_mut();
         	qo.set_property(common::PROPERTY.as_ptr() as *const i8, &common::QVariant::new0(ptr));
         }
-        sc.set_layout_padding(layout::BoundarySize::AllTheSame(DEFAULT_PADDING).into());
         sc
     }
 }
