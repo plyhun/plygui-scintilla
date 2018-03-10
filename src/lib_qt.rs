@@ -8,13 +8,9 @@ use plygui_qt::common;
 
 use scintilla_sys::ScintillaEditBase;
 
-use qt_core::cpp_utils::{StaticCast, DynamicCast};
-
 use std::mem;
 use std::cmp::max;
-use std::os::raw::{c_void, c_int};
-
-const DEFAULT_PADDING: i32 = 6;
+use std::os::raw::{c_void, c_int, c_uint};
 
 #[repr(C)]
 pub struct Scintilla {
@@ -26,9 +22,17 @@ pub struct Scintilla {
 
 impl Scintilla {
     pub fn new() -> Box<Scintilla> {
+    	use qt_core::cpp_utils::StaticCast;
+    	
+    	let mut sc = ScintillaEditBase::new();
+        let (fn_ptr, self_ptr) = {
+            let self_ptr = sc.as_mut().send(scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0);
+        	let fn_ptr = sc.as_mut().send(scintilla_sys::SCI_GETDIRECTFUNCTION, 0, 0);
+            (fn_ptr, self_ptr)
+        };
         let mut sc = Box::new(Scintilla {
                      base: common::QtControlBase::with_params(
-		                     	unsafe { (&mut *ScintillaEditBase::new().into_raw()).static_cast_mut() as &mut common::QWidget},
+		                     	unsafe { (&mut *sc.into_raw()).static_cast_mut() as &mut common::QWidget},
 		                     	invalidate_impl,
                              	development::UiMemberFunctions {
 		                             fn_member_id: member_id,
@@ -38,8 +42,8 @@ impl Scintilla {
 	                            },
                              	event_handler,
                              ),
-                     fn_ptr: None,
-				     self_ptr: None,
+                     fn_ptr: Some(unsafe { mem::transmute(fn_ptr) }),
+				     self_ptr: Some(self_ptr as *mut c_void),
                  });
         unsafe {
         	let ptr = sc.as_ref() as *const _ as u64;
@@ -52,9 +56,15 @@ impl Scintilla {
 
 impl UiScintilla for Scintilla {
     fn set_margin_width(&mut self, index: usize, width: isize) {
-        if let Some(fn_ptr) = self.fn_ptr {
+    	use qt_core::cpp_utils::UnsafeStaticCast;
+        /*if let Some(fn_ptr) = self.fn_ptr {
             (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
-        }
+        }*/
+        
+        unsafe { 
+        	let qo: *mut ScintillaEditBase = self.base.widget.static_cast_mut();
+			let _ = qo.as_mut().unwrap().send(scintilla_sys::SCI_SETMARGINWIDTHN as u32, index as c_uint, width as c_int);
+        }	
     }
 }
 
@@ -132,12 +142,6 @@ impl UiControl for Scintilla {
     }
     fn on_added_to_container(&mut self, parent: &UiContainer, x: i32, y: i32) {
     	use plygui_api::development::UiDrawable;
-    	
-    	unsafe {
-            let qo: *mut ScintillaEditBase = self.base.widget.dynamic_cast_mut().unwrap();
-        	self.fn_ptr = Some(mem::transmute(qo.as_mut().unwrap().send(scintilla_sys::SCI_GETDIRECTFUNCTION, 0, 0)));
-            self.self_ptr = Some(qo.as_mut().unwrap().send(scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0) as *mut c_void);
-        }
     	
         let (pw, ph) = parent.draw_area_size();
         self.measure(pw, ph);
@@ -248,11 +252,14 @@ fn event_handler(object: &mut common::QObject, event: &common::QEvent) -> bool {
 	unsafe {
 		match event.type_() {
 			common::QEventType::Resize => {
-				let ptr = object as *mut common::QObject;
-				if let Some(button) = common::cast_qobject_to_uimember_mut::<Scintilla>(object) {
-					let (width,height) = button.size();
-					if let Some(ref mut cb) = button.base.h_resize {
-		                let w2: &mut Scintilla = ::std::mem::transmute(ptr);
+				let ptr = object.property(common::PROPERTY.as_ptr() as *const i8).to_u_long_long();
+				if ptr != 0 {
+					use std::mem;
+					
+					let sc: &mut Scintilla = mem::transmute(ptr);
+					let (width,height) = sc.size();
+					if let Some(ref mut cb) = sc.base.h_resize {
+		                let w2: &mut Scintilla = mem::transmute(ptr);
 		                (cb.as_mut())(w2, width, height);
 		            }
 				}
