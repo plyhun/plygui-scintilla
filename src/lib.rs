@@ -15,8 +15,6 @@ extern crate winapi;
 #[cfg(target_os="windows")]
 pub use lib_win32::Scintilla;
 
-//pub use scintilla_sys::{Sci_TextRange as TextRange, Sci_CharacterRange as CharacterRange, Sci_PositionCR as PositionCr};
-
 use std::borrow::Cow;
 
 pub const MEMBER_ID_SCINTILLA: &str = "Scintilla";
@@ -590,22 +588,12 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
 	fn style_name<'a>(&'a self, style: StyleId) -> Cow<'a, str>;
 	fn style_tag<'a>(&'a self, style: StyleId) -> Cow<'a, str>;
 	fn style_description<'a>(&'a self, style: StyleId) -> Cow<'a, str>;
+	
+	
+	
 	/*
 
-SCI_GETSUBSTYLEBASES(<unused>, char *styles) → int
-SCI_DISTANCETOSECONDARYSTYLES → int
-SCI_ALLOCATESUBSTYLES(int styleBase, int numberStyles) → int
-SCI_FREESUBSTYLES
-SCI_GETSUBSTYLESSTART(int styleBase) → int
-SCI_GETSUBSTYLESLENGTH(int styleBase) → int
-SCI_GETSTYLEFROMSUBSTYLE(int subStyle) → int
-SCI_GETPRIMARYSTYLEFROMSTYLE(int style) → int
-SCI_SETIDENTIFIERS(int style, const char *identifiers)
-SCI_PRIVATELEXERCALL(int operation, int pointer) → int
-SCI_GETNAMEDSTYLES → int
-SCI_NAMEOFSTYLE(int style, char *name) → int
-SCI_TAGSOFSTYLE(int style, char *tags) → int
-SCI_DESCRIPTIONOFSTYLE(int style, char *description) → int
+
 */
 }
 pub enum Property {
@@ -992,7 +980,7 @@ pub trait Style {
     fn is_italic(&self, style: StyleId) -> bool;
     fn set_underline(&mut self, style: StyleId, enabled: bool);
     fn is_underline(&self, style: StyleId) -> bool;
-    fn set_weight(&mut self, style: StyleId, weight: u32);
+    fn set_weight<T: Weight>(&mut self, style: StyleId, weight: T);
     fn weight(&self, style: StyleId) -> u32;
     fn set_foreground(&mut self, style: StyleId, color: Color);
     fn foreground(&self, style: StyleId) -> Color;
@@ -1000,10 +988,10 @@ pub trait Style {
     fn background(&self, style: StyleId) -> Color;
     fn set_eol_filled(&mut self, style: StyleId, enabled: bool);
     fn is_eol_filled(&self, style: StyleId) -> bool;
-    fn set_charset(&mut self, style: StyleId, charset: u32);
-    fn charset(&self, style: StyleId) -> u32;
-    fn set_case(&mut self, style: StyleId, case: u32);
-    fn case(&self, style: StyleId) -> u32;
+    fn set_charset(&mut self, style: StyleId, charset: Charset);
+    fn charset(&self, style: StyleId) -> Charset;
+    fn set_case(&mut self, style: StyleId, case: Case);
+    fn case(&self, style: StyleId) -> Case;
     fn set_visible(&mut self, style: StyleId, enabled: bool);
     fn is_visible(&self, style: StyleId) -> bool;
     fn set_changeable(&mut self, style: StyleId, enabled: bool);
@@ -1326,7 +1314,7 @@ impl From<Color> for (u8, u8, u8) {
 }
 
 // TODO move off to mod
-trait ScintillaUnsafe {
+/*trait ScintillaUnsafe {
 	fn marker_define(&mut self, number: u32, symbol: u32);
     fn marker_define_pixmap(&mut self, number: u32, pixmap: &str);
     fn rgba_image_set_width(&mut self, value: u32);
@@ -1379,4 +1367,51 @@ trait ScintillaUnsafe {
 	fn find_indicator_show(&mut self, start: u32, end: u32);
 	fn find_indicator_flash(&mut self, start: u32, end: u32);
 	fn hide_indicators(&mut self);
+}*/
+
+pub enum Charset {
+	Ansi = scintilla_sys::SC_CHARSET_ANSI as isize,
+	Arabic = scintilla_sys::SC_CHARSET_ARABIC as isize,
+	Baltic = scintilla_sys::SC_CHARSET_BALTIC as isize,
+	ChineseBig5 = scintilla_sys::SC_CHARSET_CHINESEBIG5 as isize,
+	Default = scintilla_sys::SC_CHARSET_DEFAULT as isize,
+	EastEurope = scintilla_sys::SC_CHARSET_EASTEUROPE as isize,
+	Gb2312 = scintilla_sys::SC_CHARSET_GB2312 as isize,
+	Greek = scintilla_sys::SC_CHARSET_GREEK as isize,
+	Hangul = scintilla_sys::SC_CHARSET_HANGUL as isize,
+	Hebrew = scintilla_sys::SC_CHARSET_HEBREW as isize,
+	Johab = scintilla_sys::SC_CHARSET_JOHAB as isize,
+	Mac = scintilla_sys::SC_CHARSET_MAC as isize,
+	Oem = scintilla_sys::SC_CHARSET_OEM as isize,
+	Russian = scintilla_sys::SC_CHARSET_RUSSIAN as isize,
+	ShiftJis = scintilla_sys::SC_CHARSET_SHIFTJIS as isize,
+	Symbol = scintilla_sys::SC_CHARSET_SYMBOL as isize,
+	Thai = scintilla_sys::SC_CHARSET_THAI as isize,
+	Turkish = scintilla_sys::SC_CHARSET_TURKISH as isize,
+	Vietnamese = scintilla_sys::SC_CHARSET_VIETNAMESE as isize,
+	Oem866 = scintilla_sys::SC_CHARSET_OEM866 as isize,
+	Cyrillic = scintilla_sys::SC_CHARSET_CYRILLIC as isize,
+	C8859_15 = scintilla_sys::SC_CHARSET_8859_15 as isize,
+}
+
+pub enum Case {
+	Upper = scintilla_sys::SC_CASE_UPPER as isize,
+	Lower = scintilla_sys::SC_CASE_LOWER as isize, 
+	Camel = scintilla_sys::SC_CASE_CAMEL as isize,
+	Mixed = scintilla_sys::SC_CASE_MIXED as isize,
+}
+
+pub trait Weight {
+	fn into_arg(self) -> u32,
+}
+pub enum TypicalWeight {
+	Normal = scintilla_sys::SC_WEIGHT_NORMAL as isize, 
+	SemiBold = scintilla_sys::SC_WEIGHT_SEMIBOLD as isize, 
+	Bold = scintilla_sys::SC_WEIGHT_BOLD as isize,
+}
+impl Weight for TypicalWeight {
+	fn into_arg(self) -> u32 { self as u32 }
+}
+impl Weight for u32 {
+	fn into_arg(self) -> u32 { self }
 }
