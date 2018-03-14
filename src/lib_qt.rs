@@ -6,7 +6,9 @@ use plygui_api::members::MEMBER_ID_BUTTON;
 
 use plygui_qt::common;
 
-use scintilla_sys::ScintillaEditBase;
+use scintilla_sys::*;
+
+use qt_core::connection::Signal;
 
 use std::mem;
 use std::cmp::max;
@@ -16,14 +18,14 @@ use std::os::raw::{c_void, c_int, c_uint};
 pub struct Scintilla {
     base: common::QtControlBase,
 
+    h_command: (bool, SlotSCNotificationPtr<'static>),
+    
     fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int)>,
     self_ptr: Option<*mut c_void>,
 }
 
 impl Scintilla {
     pub fn new() -> Box<Scintilla> {
-    	use qt_core::cpp_utils::StaticCast;
-    	
     	let mut sc = ScintillaEditBase::new();
         let (fn_ptr, self_ptr) = {
             let self_ptr = sc.as_mut().send(scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0);
@@ -32,7 +34,10 @@ impl Scintilla {
         };
         let mut sc = Box::new(Scintilla {
                      base: common::QtControlBase::with_params(
-		                     	unsafe { (&mut *sc.into_raw()).static_cast_mut() as &mut common::QWidget},
+		                     	unsafe { 
+		                     		use qt_core::cpp_utils::StaticCast;    	
+		                     		(&mut *sc.into_raw()).static_cast_mut() as &mut common::QWidget
+		                     	},
 		                     	invalidate_impl,
                              	development::UiMemberFunctions {
 		                             fn_member_id: member_id,
@@ -42,13 +47,20 @@ impl Scintilla {
 	                            },
                              	event_handler,
                              ),
+                     h_command: (false, SlotSCNotificationPtr::new(move |_|{ println!("AAA!!") })),
                      fn_ptr: Some(unsafe { mem::transmute(fn_ptr) }),
 				     self_ptr: Some(self_ptr as *mut c_void),
                  });
         unsafe {
-        	let ptr = sc.as_ref() as *const _ as u64;
+        	use qt_core::cpp_utils::StaticCast;    	
+	    	let ptr = sc.as_ref() as *const _ as u64;
         	let qo: &mut common::QObject = sc.base.widget.static_cast_mut();
         	qo.set_property(common::PROPERTY.as_ptr() as *const i8, &common::QVariant::new0(ptr));
+        }
+        unsafe {
+        	use qt_core::cpp_utils::UnsafeStaticCast;
+        	let qo: *mut ScintillaEditBase = sc.base.widget.static_cast_mut();
+        	(&mut *qo).signals().notify().connect(&sc.h_command.1);
         }
         sc
     }
