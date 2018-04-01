@@ -44,6 +44,22 @@ extern crate qt_gui;
 #[cfg(feature = "qt5")]
 pub use lib_qt::Scintilla;
 
+#[cfg(feature = "gtk3")]
+mod lib_gtk;
+#[macro_use]
+#[cfg(feature = "gtk3")]
+extern crate plygui_gtk;
+#[cfg(feature = "gtk3")]
+extern crate gtk;
+#[cfg(feature = "gtk3")]
+extern crate gdk;
+#[cfg(feature = "gtk3")]
+extern crate glib;
+#[cfg(feature = "gtk3")]
+extern crate pango;
+#[cfg(feature = "gtk3")]
+pub use lib_gtk::Scintilla;
+
 pub const MEMBER_ID_SCINTILLA: &str = "Scintilla";
 
 pub trait UiScintilla: plygui_api::traits::UiControl {
