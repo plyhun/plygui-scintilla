@@ -9,7 +9,7 @@ use scintilla_sys::{Scintilla as GtkScintilla, ScintillaExt, SCNotification, Ptr
 
 use gtk::{Cast, Widget, WidgetExt, Fixed, FixedExt, Rectangle};
 
-use std::mem;
+use std::{mem, str, slice};
 use std::cmp::max;
 use std::os::raw::{c_void, c_int};
 
@@ -51,7 +51,7 @@ impl Scintilla {
         	let sc = sc.base.widget.clone().downcast::<GtkScintilla>().unwrap();
 			sc.connect_notify(on_notify);
         }
-        sc.base.widget.connect_size_allocate(on_resize_move);
+        sc.base.widget.connect_size_allocate(on_size_allocate);
         sc
     }
 }
@@ -146,6 +146,7 @@ impl UiControl for Scintilla {
     	
         let (pw, ph) = parent.draw_area_size();
         self.measure(pw, ph);
+        self.base.dirty = false;
         self.draw(Some((x, y)));
     }
     fn on_removed_from_container(&mut self, _: &UiContainer) {}	
@@ -205,6 +206,7 @@ impl development::UiDrawable for Scintilla {
 				self.base.widget.hide();
 			}
 		}
+    	self.base.dirty = false;
     }
     fn measure(&mut self, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
     	let old_size = self.base.measured_size;
@@ -234,10 +236,11 @@ impl development::UiDrawable for Scintilla {
                 )
             },
         };
+        self.base.dirty = self.base.measured_size != old_size;
         (
             self.base.measured_size.0,
             self.base.measured_size.1,
-            self.base.measured_size != old_size,
+            self.base.dirty,
         )
     }
 }
@@ -251,25 +254,12 @@ impl_invalidate!(Scintilla);
 impl_is_control!(Scintilla);
 impl_size!(Scintilla);
 impl_member_id!(MEMBER_ID_SCINTILLA);
+impl_on_size_allocate!(Scintilla);
 
-fn on_resize_move(this: &Widget, allo: &Rectangle) {
+fn on_notify(this: &GtkScintilla, _msg: i32, notification: Ptr, _data: Ptr) {
 	let mut b = this.clone().upcast::<Widget>();
-	let b = common::cast_gtk_widget_to_uimember_mut::<Scintilla>(&mut b).unwrap();
-	if b.base.measured_size.0 as i32 != allo.width || b.base.measured_size.1 as i32 != allo.height {
-		use std::cmp::max;
-		
-		b.base.measured_size = (max(0, allo.width) as u16, max(0, allo.height) as u16);
-		if let Some(ref mut cb) = b.base.h_resize {
-            let mut w2 = this.clone().upcast::<Widget>();
-			let mut w2 = common::cast_gtk_widget_to_uimember_mut::<Scintilla>(&mut w2).unwrap();
-			(cb.as_mut())(w2, b.base.measured_size.0 as u16, b.base.measured_size.1 as u16);
-        }
-	}
-}
-fn on_notify(this: &GtkScintilla, msg: i32, notification: Ptr, data: Ptr) {
-	let mut b = this.clone().upcast::<Widget>();
-	let notification = notification as *const SCNotification;
+	let notification = unsafe { &*(notification as *const SCNotification) };
 	let b = common::cast_gtk_widget_to_uimember_mut::<Scintilla>(&mut b).unwrap();
 	
-	println!("AAA");
+	//println!("AAA {:?}/{:?} = {}", notification.wParam, notification.lParam, unsafe { str::from_utf8_unchecked(slice::from_raw_parts(notification.text as *const u8, notification.length as usize)) });
 }
