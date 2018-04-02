@@ -156,6 +156,7 @@ impl UiControl for Scintilla {
     	
         let (pw, ph) = parent.draw_area_size();
         self.measure(pw, ph);
+        self.base.dirty = false;
         self.draw(Some((x, y)));
     }
     fn on_removed_from_container(&mut self, _: &UiContainer) {}	
@@ -241,10 +242,11 @@ impl development::UiDrawable for Scintilla {
                 )
             },
         };
+        self.base.dirty = self.base.measured_size != old_size;
         (
             self.base.measured_size.0,
             self.base.measured_size.1,
-            self.base.measured_size != old_size,
+            self.base.dirty,
         )
     }
 }
@@ -268,11 +270,14 @@ fn event_handler(object: &mut common::QObject, event: &common::QEvent) -> bool {
 					use std::mem;
 					
 					let sc: &mut Scintilla = mem::transmute(ptr);
-					let (width,height) = sc.size();
-					if let Some(ref mut cb) = sc.base.h_resize {
-		                let w2: &mut Scintilla = mem::transmute(ptr);
-		                (cb.as_mut())(w2, width, height);
-		            }
+					if sc.base.dirty {
+						sc.base.dirty = false;
+						let (width,height) = sc.size();
+						if let Some(ref mut cb) = sc.base.h_resize {
+			                let w2: &mut Scintilla = mem::transmute(ptr);
+			                (cb.as_mut())(w2, width, height);
+			            }
+					}
 				}
 			},
 			_ => {},
