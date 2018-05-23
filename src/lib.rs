@@ -5,16 +5,14 @@ extern crate lazy_static;
 #[macro_use]
 extern crate plygui_api;
 
-#[cfg(target_os="windows")]
+#[cfg(all(target_os = "windows", feature = "win32"))]
 mod lib_win32;
-#[cfg(target_os="windows")]
+#[cfg(all(target_os = "windows", feature = "win32"))]
 extern crate plygui_win32;
-#[cfg(target_os="windows")]
+#[cfg(all(target_os = "windows", feature = "win32"))]
 extern crate winapi;
-#[cfg(target_os="windows")]
+#[cfg(all(target_os = "windows", feature = "win32"))]
 pub use lib_win32::Scintilla;
-#[cfg(target_os="windows")]
-pub use lib_win32::ScintillaWin32 as Spawner;
 
 #[cfg(target_os="macos")]
 mod lib_cocoa;
@@ -65,6 +63,10 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
     fn set_margin_width(&mut self, index: usize, width: isize);
 }
 
+pub trait NewScintilla {
+	fn new() -> Box<UiScintilla>;
+}	
+	
 pub mod development {
 	use super::*;
 	use plygui_api::development::*;
@@ -79,10 +81,10 @@ pub mod development {
 			self.as_inner_mut().as_inner_mut().set_margin_width(index, width)
 		}
 	}
-	// bloody fucking orphan rules
-	/*impl <T: ScintillaInner + Sized> Member<Control<T>> {
-		pub fn new() -> Box<UiScintilla> {
+	// still bloody but less fucking orphan rules
+	impl <T: ScintillaInner + Sized> NewScintilla for Member<Control<T>> {
+		fn new() -> Box<UiScintilla> {
 			T::new()
 		}
-	} */
+	} 
 }

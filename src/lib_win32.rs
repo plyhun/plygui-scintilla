@@ -48,7 +48,7 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
                 }
             }
         }
-        let b: Box<Scintilla> = Box::new(development::Member::new(development::Control::new(
+        let b: Box<Scintilla> = Box::new(development::Member::with_inner(development::Control::with_inner(
         		ScintillaWin32 {
 		            base: common::WindowsControlBase::new(),
 		            fn_ptr: None,
