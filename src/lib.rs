@@ -65,7 +65,8 @@ pub trait UiScintilla: plygui_api::traits::UiControl {
 
 pub trait NewScintilla {
 	fn new() -> Box<UiScintilla>;
-}	
+	fn with_content(content: &str) -> Box<UiScintilla>;
+}
 	
 pub mod development {
 	use super::*;
@@ -73,6 +74,7 @@ pub mod development {
 	
 	pub trait ScintillaInner: ControlInner {
 		fn new() -> Box<UiScintilla>;
+		fn with_content(content: &str) -> Box<UiScintilla>;
 		fn set_margin_width(&mut self, index: usize, width: isize);
 	}
 	
@@ -85,6 +87,9 @@ pub mod development {
 	impl <T: ScintillaInner + Sized> NewScintilla for Member<Control<T>> {
 		fn new() -> Box<UiScintilla> {
 			T::new()
+		}
+		fn with_content(content: &str) -> Box<UiScintilla> {
+			T::with_content(content)
 		}
 	} 
 }

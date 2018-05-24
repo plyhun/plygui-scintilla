@@ -1,8 +1,8 @@
 use super::*;
 use super::development as scintilla_dev;
 
-use plygui_api::{layout, types, development, utils, traits};
-use plygui_api::development::{Drawable, HasInner};		
+use plygui_api::{layout, types, utils, traits};
+use plygui_api::development::*;		
 		
 use plygui_win32::common;
 use scintilla_sys::{Scintilla_RegisterClasses, Scintilla_ReleaseResources};
@@ -29,11 +29,11 @@ lazy_static! {
         .collect::<Vec<_>>();
 }
 
-pub type Scintilla = development::Member<development::Control<ScintillaWin32>>;
+pub type Scintilla = Member<Control<ScintillaWin32>>;
 
 #[repr(C)]
 pub struct ScintillaWin32 {
-    base: common::WindowsControlBase,
+    base: common::WindowsControlBase<Scintilla>,
     
     fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int)>,
     self_ptr: Option<*mut c_void>,
@@ -48,16 +48,21 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
                 }
             }
         }
-        let b: Box<Scintilla> = Box::new(development::Member::with_inner(development::Control::with_inner(
+        let b: Box<Scintilla> = Box::new(Member::with_inner(Control::with_inner(
         		ScintillaWin32 {
 		            base: common::WindowsControlBase::new(),
 		            fn_ptr: None,
 		            self_ptr: None,
 		        }, ()),
-        		development::MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
+        		MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
         ));
         //b.set_layout_padding(layout::BoundarySize::AllTheSame(DEFAULT_PADDING).into());
         b
+	}
+	fn with_content(content: &str) -> Box<UiScintilla> {
+		let mut b = Self::new();
+		// TODO content :)
+		b
 	}
 	fn set_margin_width(&mut self, index: usize, width: isize) {
 		if let Some(fn_ptr) = self.fn_ptr {
@@ -66,8 +71,8 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
 	}
 }
 
-impl development::ControlInner for ScintillaWin32 {
-	fn on_added_to_container(&mut self, base: &mut development::MemberControlBase, parent: &traits::UiContainer, x: i32, y: i32) {
+impl ControlInner for ScintillaWin32 {
+	fn on_added_to_container(&mut self, base: &mut MemberControlBase, parent: &traits::UiContainer, x: i32, y: i32) {
 		let selfptr = base as *mut _ as *mut win_void;
         let (pw, ph) = parent.size();
         //let (lp,tp,rp,bp) = base.control.layout.padding.into();
@@ -97,7 +102,7 @@ impl development::ControlInner for ScintillaWin32 {
             self.self_ptr = Some(winuser::SendMessageW(self.base.hwnd, scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0) as *mut c_void);
         }
 	}
-    fn on_removed_from_container(&mut self, _: &mut development::MemberControlBase, _: &traits::UiContainer) {
+    fn on_removed_from_container(&mut self, _: &mut MemberControlBase, _: &traits::UiContainer) {
     	common::destroy_hwnd(self.base.hwnd, self.base.subclass_id, Some(handler));
         self.base.hwnd = 0 as windef::HWND;
         self.base.subclass_id = 0;
@@ -132,21 +137,20 @@ impl Drop for ScintillaWin32 {
     }
 }
 
-impl development::HasLayoutInner for ScintillaWin32 {
-	fn on_layout_changed(&mut self, _: &mut layout::Attributes) {
+impl HasLayoutInner for ScintillaWin32 {
+	fn on_layout_changed(&mut self, base: &mut MemberBase) {
 		let hwnd = self.base.hwnd;
         if !hwnd.is_null() {
-        	use plygui_api::development::Drawable;
-        	
-			self.invalidate(utils::member_control_base_mut(common::member_from_hwnd::<Scintilla>(hwnd)));
+        	let base = self.cast_base_mut(base);
+        	self.invalidate(base);
 		}
 	}
 }
 
-impl development::MemberInner for ScintillaWin32 {
+impl MemberInner for ScintillaWin32 {
 	type Id = common::Hwnd;
 	
-	fn size(&self, _: &development::MemberBase) -> (u16, u16) {
+	fn size(&self) -> (u16, u16) {
         let rect = unsafe { common::window_rect(self.base.hwnd) };
         (
             (rect.right - rect.left) as u16,
@@ -154,12 +158,10 @@ impl development::MemberInner for ScintillaWin32 {
         )
     }
 
-    fn on_set_visibility(&mut self, base: &mut development::MemberBase) {
+    fn on_set_visibility(&mut self, base: &mut MemberBase) {
 	    let hwnd = self.base.hwnd;
         if !hwnd.is_null() {
-        	use plygui_api::development::Drawable;
-        	
-		    unsafe {
+        	unsafe {
 	            winuser::ShowWindow(
 	                self.base.hwnd,
 	                if base.visibility == types::Visibility::Visible {
@@ -177,8 +179,8 @@ impl development::MemberInner for ScintillaWin32 {
     }
 }
 
-impl development::Drawable for ScintillaWin32 {
-	fn draw(&mut self, base: &mut development::MemberControlBase, coords: Option<(i32, i32)>) {
+impl Drawable for ScintillaWin32 {
+	fn draw(&mut self, base: &mut MemberControlBase, coords: Option<(i32, i32)>) {
 		if coords.is_some() {
             self.base.coords = coords;
         }
@@ -198,7 +200,7 @@ impl development::Drawable for ScintillaWin32 {
             }
         }
 	}
-    fn measure(&mut self, base: &mut development::MemberControlBase, w: u16, h: u16) -> (u16, u16, bool) {
+    fn measure(&mut self, base: &mut MemberControlBase, w: u16, h: u16) -> (u16, u16, bool) {
     	let old_size = self.base.measured_size;
         let (lp,tp,rp,bp) = base.control.layout.padding.into();
         let (lm, tm, rm, bm) = base.control.layout.margin.into();
@@ -232,31 +234,15 @@ impl development::Drawable for ScintillaWin32 {
             self.base.measured_size != old_size,
         )
     }
-    fn invalidate(&mut self, _: &mut development::MemberControlBase) {
-    	let parent_hwnd = self.base.parent_hwnd();	
-		if let Some(parent_hwnd) = parent_hwnd {
-			let mparent = common::member_base_from_hwnd(parent_hwnd);
-			let (pw, ph) = mparent.as_member().size();
-			let this = common::member_from_hwnd::<Scintilla>(self.base.hwnd);
-			let (_,_,changed) = self.measure(utils::member_control_base_mut(this), pw, ph);
-			self.draw(utils::member_control_base_mut(this), None);		
-					
-			if let Some(cparent) = mparent.as_member_mut().is_control_mut() {
-				if changed {
-					cparent.invalidate();
-				} 
-			}
-			if parent_hwnd != 0 as ::winapi::shared::windef::HWND {
-	    		unsafe { ::winapi::um::winuser::InvalidateRect(parent_hwnd, ptr::null_mut(), ::winapi::shared::minwindef::TRUE); }
-	    	}
-	    }
+    fn invalidate(&mut self, base: &mut MemberControlBase) {
+    	self.base.invalidate(base)
     }
 }
 
-/*#[allow(dead_code)]
-pub(crate) fn spawn() -> Box<UiControl> {
-    Scintilla::new("")
-}*/
+#[allow(dead_code)]
+pub(crate) fn spawn() -> Box<traits::UiControl> {
+    Scintilla::new().into_control()
+}
 
 unsafe extern "system" fn handler(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM, _: usize, param: usize) -> isize {
     let sc: &mut Scintilla = mem::transmute(param);
