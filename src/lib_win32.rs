@@ -1,7 +1,6 @@
-use super::*;
 use super::development as scintilla_dev;
 
-use plygui_api::{layout, types, utils, traits};
+use plygui_api::{layout, types, utils, controls};
 use plygui_api::development::*;		
 		
 use plygui_win32::common;
@@ -40,10 +39,10 @@ pub struct ScintillaWin32 {
 }
 
 impl scintilla_dev::ScintillaInner for ScintillaWin32 {
-	fn new() -> Box<UiScintilla> {
+	fn new() -> Box<super::Scintilla> {
 		if GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
             unsafe { 
-                if Scintilla_RegisterClasses(common::hinstance() as *mut std::os::raw::c_void) == 0 {
+                if Scintilla_RegisterClasses(common::hinstance() as *mut c_void) == 0 {
                     panic!("Cannot register Scintilla Win32 class");
                 }
             }
@@ -59,20 +58,20 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
         //b.set_layout_padding(layout::BoundarySize::AllTheSame(DEFAULT_PADDING).into());
         b
 	}
-	fn with_content(content: &str) -> Box<UiScintilla> {
+	fn with_content(content: &str) -> Box<super::Scintilla> {
 		let mut b = Self::new();
 		// TODO content :)
 		b
 	}
 	fn set_margin_width(&mut self, index: usize, width: isize) {
 		if let Some(fn_ptr) = self.fn_ptr {
-            (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
         }
 	}
 }
 
 impl ControlInner for ScintillaWin32 {
-	fn on_added_to_container(&mut self, base: &mut MemberControlBase, parent: &traits::UiContainer, x: i32, y: i32) {
+	fn on_added_to_container(&mut self, base: &mut MemberControlBase, parent: &controls::Container, x: i32, y: i32) {
 		let selfptr = base as *mut _ as *mut win_void;
         let (pw, ph) = parent.size();
         //let (lp,tp,rp,bp) = base.control.layout.padding.into();
@@ -98,11 +97,11 @@ impl ControlInner for ScintillaWin32 {
         self.base.subclass_id = id;
         
         unsafe {
-            self.fn_ptr = Some(mem::transmute(winuser::SendMessageW(self.base.hwnd, scintilla_sys::SCI_GETDIRECTFUNCTION, 0, 0)));
-            self.self_ptr = Some(winuser::SendMessageW(self.base.hwnd, scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0) as *mut c_void);
+            self.fn_ptr = Some(mem::transmute(winuser::SendMessageW(self.base.hwnd, super::scintilla_sys::SCI_GETDIRECTFUNCTION, 0, 0)));
+            self.self_ptr = Some(winuser::SendMessageW(self.base.hwnd, super::scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0) as *mut c_void);
         }
 	}
-    fn on_removed_from_container(&mut self, _: &mut MemberControlBase, _: &traits::UiContainer) {
+    fn on_removed_from_container(&mut self, _: &mut MemberControlBase, _: &controls::Container) {
     	common::destroy_hwnd(self.base.hwnd, self.base.subclass_id, Some(handler));
         self.base.hwnd = 0 as windef::HWND;
         self.base.subclass_id = 0;
@@ -110,16 +109,16 @@ impl ControlInner for ScintillaWin32 {
         self.self_ptr = None;
     }
     
-    fn parent(&self) -> Option<&traits::UiMember> {
+    fn parent(&self) -> Option<&controls::Member> {
 		self.base.parent().map(|p| p.as_member())
 	}
-    fn parent_mut(&mut self) -> Option<&mut traits::UiMember> {
+    fn parent_mut(&mut self) -> Option<&mut controls::Member> {
     	self.base.parent_mut().map(|p| p.as_member_mut())
     }
-    fn root(&self) -> Option<&traits::UiMember> {
+    fn root(&self) -> Option<&controls::Member> {
     	self.base.root().map(|p| p.as_member())
     }
-    fn root_mut(&mut self) -> Option<&mut traits::UiMember> {
+    fn root_mut(&mut self) -> Option<&mut controls::Member> {
     	self.base.root_mut().map(|p| p.as_member_mut())
     }
     
@@ -240,7 +239,9 @@ impl Drawable for ScintillaWin32 {
 }
 
 #[allow(dead_code)]
-pub(crate) fn spawn() -> Box<traits::UiControl> {
+pub(crate) fn spawn() -> Box<controls::Control> {
+	use super::NewScintilla;
+	
     Scintilla::new().into_control()
 }
 

@@ -12,7 +12,7 @@ extern crate plygui_win32;
 #[cfg(all(target_os = "windows", feature = "win32"))]
 extern crate winapi;
 #[cfg(all(target_os = "windows", feature = "win32"))]
-pub use lib_win32::Scintilla;
+use lib_win32 as inner_imp;
 
 #[cfg(target_os="macos")]
 mod lib_cocoa;
@@ -27,7 +27,7 @@ extern crate cocoa;
 #[cfg(target_os="macos")]
 extern crate core_foundation;
 #[cfg(target_os="macos")]
-pub use lib_cocoa::Scintilla;
+use lib_cocoa as inner_imp;
 
 #[cfg(feature = "qt5")]
 mod lib_qt;
@@ -41,7 +41,7 @@ extern crate qt_widgets;
 #[cfg(feature = "qt5")]
 extern crate qt_gui;
 #[cfg(feature = "qt5")]
-pub use lib_qt::Scintilla;
+use lib_qt as inner_imp;
 
 #[cfg(feature = "gtk3")]
 mod lib_gtk;
@@ -57,38 +57,41 @@ extern crate glib;
 #[cfg(feature = "gtk3")]
 extern crate pango;
 #[cfg(feature = "gtk3")]
-pub use lib_gtk::Scintilla;
+use lib_gtk as inner_imp;
 
-pub trait UiScintilla: plygui_api::traits::UiControl {
+pub trait Scintilla: plygui_api::controls::Control {
     fn set_margin_width(&mut self, index: usize, width: isize);
 }
 
 pub trait NewScintilla {
-	fn new() -> Box<UiScintilla>;
-	fn with_content(content: &str) -> Box<UiScintilla>;
+	fn new() -> Box<Scintilla>;
+	fn with_content(content: &str) -> Box<Scintilla>;
+}
+
+pub mod imp {
+	pub use inner_imp::Scintilla;
 }
 	
 pub mod development {
-	use super::*;
 	use plygui_api::development::*;
 	
 	pub trait ScintillaInner: ControlInner {
-		fn new() -> Box<UiScintilla>;
-		fn with_content(content: &str) -> Box<UiScintilla>;
+		fn new() -> Box<super::Scintilla>;
+		fn with_content(content: &str) -> Box<super::Scintilla>;
 		fn set_margin_width(&mut self, index: usize, width: isize);
 	}
 	
-	impl <T: ScintillaInner + Sized + 'static> UiScintilla for Member<Control<T>> {
+	impl <T: ScintillaInner + Sized + 'static> super::Scintilla for Member<Control<T>> {
 		fn set_margin_width(&mut self, index: usize, width: isize) {
 			self.as_inner_mut().as_inner_mut().set_margin_width(index, width)
 		}
 	}
 	// still bloody but less fucking orphan rules
-	impl <T: ScintillaInner + Sized> NewScintilla for Member<Control<T>> {
-		fn new() -> Box<UiScintilla> {
+	impl <T: ScintillaInner + Sized> super::NewScintilla for Member<Control<T>> {
+		fn new() -> Box<super::Scintilla> {
 			T::new()
 		}
-		fn with_content(content: &str) -> Box<UiScintilla> {
+		fn with_content(content: &str) -> Box<super::Scintilla> {
 			T::with_content(content)
 		}
 	} 
