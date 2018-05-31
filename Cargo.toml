@@ -39,10 +39,9 @@ core-foundation = {version = "~0.3", optional = true}
 objc = {version = "~0.2", optional = true}
 
 [features]
-win32 = ["scintilla-sys/win32","winapi"]
-gtk3 = ["scintilla-sys/gtk3","plygui-gtk","gtk","gdk","glib","pango"]
-qt5 = ["scintilla-sys/qt5","plygui-qt","qt_core","qt_gui","qt_widgets","qt_core_custom_events"]
-curses = []
-cocoa_ = ["scintilla-sys/cocoa","cocoa","core-foundation","objc"]
+win32 = ["scintilla-sys/win32","winapi","plygui-win32"]
+gtk3 = ["scintilla-sys/gtk3","plygui-gtk","gtk","gdk","glib","pango","plygui-gtk"]
+qt5 = ["scintilla-sys/qt5","plygui-qt","qt_core","qt_gui","qt_widgets","qt_core_custom_events","plygui-qt"]
+cocoa_ = ["scintilla-sys/cocoa","cocoa","core-foundation","objc","plygui-cocoa"]
 native = ["win32", "cocoa_", "gtk3"]
 default = ["native"]
