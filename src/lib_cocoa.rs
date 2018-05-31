@@ -84,7 +84,7 @@ impl scintilla_dev::ScintillaInner for ScintillaCocoa {
 }
 
 impl development::ControlInner for ScintillaCocoa {
-	fn on_added_to_container(&mut self, base: &mut development::MemberControlBase, parent: &controls::Container, x: i32, y: i32) {
+	fn on_added_to_container(&mut self, base: &mut development::MemberControlBase, parent: &controls::Container, _x: i32, _y: i32) {
 		use plygui_api::development::Drawable;
     	
         let (pw, ph) = parent.draw_area_size();
