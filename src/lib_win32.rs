@@ -123,8 +123,8 @@ impl ControlInner for ScintillaWin32 {
     }
     
     #[cfg(feature = "markup")]
-    fn fill_from_markup(&mut self, base: &mut MemberControlBase, markup: &super::markup::Markup, registry: &mut super::markup::MarkupRegistry) {
-    	unimplemented!()
+    fn fill_from_markup(&mut self, base: &mut development::MemberControlBase, markup: &plygui_api::markup::Markup, registry: &mut plygui_api::markup::MarkupRegistry) {
+    	fill_from_markup_base!(self, base, markup, registry, Scintilla, ["Scintilla"]);
     }
 }
 
