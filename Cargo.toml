@@ -12,36 +12,11 @@ plygui-api = {version = "0.0.1", path = "../plygui-api"}
 scintilla-sys = {version = "*", path = "../scintilla-sys-rs"}
 lazy_static = "~0.2"
 
-plygui-gtk = {version = "0.0.1", path = "../plygui-gtk", optional = true}
-gtk = { version = "^0.4", features = ["v3_18"], optional = true }
-gdk = { version = "^0.8", features = ["v3_18"], optional = true }
-glib = { version = "^0.5", optional = true }
-glib-sys = { version = "^0.6", optional = true }
-gobject-sys = { version = "^0.6", optional = true }
-gtk-sys = { version = "^0.6", optional = true }
-libc = { version = "^0.2", optional = true }
-pango = { version = "^0.4", optional = true }
-
-plygui-qt = {version = "0.0.1", path = "../plygui-qt", optional = true}
-qt_core = {version = "~0.2", optional = true}
-qt_gui = {version = "~0.2", optional = true}
-qt_widgets = {version = "~0.2", optional = true}
-qt_core_custom_events = {version = "*", path = "../qt_core_custom_events", optional = true}
-
 [target.'cfg(target_os = "windows")'.dependencies]
 plygui-win32 = {version = "0.0.1", path = "../plygui-win32", optional = true}
-winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "imm", "oleauto"], optional = true }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-plygui-cocoa = { version = "0.0.1", path = "../plygui-cocoa", optional = true}
-cocoa = {version = "~0.9", optional = true}
-core-foundation = {version = "~0.3", optional = true}
-objc = {version = "~0.2", optional = true}
+winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "imm", "oleauto", "wincon", "consoleapi"], optional = true }
 
 [features]
 win32 = ["scintilla-sys/win32","winapi","plygui-win32"]
-gtk3 = ["scintilla-sys/gtk3","plygui-gtk","gtk","gdk","glib","pango","plygui-gtk"]
-qt5 = ["scintilla-sys/qt5","plygui-qt","qt_core","qt_gui","qt_widgets","qt_core_custom_events","plygui-qt"]
-cocoa_ = ["scintilla-sys/cocoa","cocoa","core-foundation","objc","plygui-cocoa"]
-native = ["win32", "cocoa_", "gtk3"]
+native = ["win32"]
 default = ["native"]

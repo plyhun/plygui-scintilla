@@ -6,16 +6,10 @@ extern crate lazy_static;
 extern crate plygui_api;
 
 #[cfg(all(target_os = "windows", feature = "win32"))]
-mod lib_win32;
-#[cfg(all(target_os = "windows", feature = "win32"))]
 extern crate plygui_win32;
 #[cfg(all(target_os = "windows", feature = "win32"))]
 extern crate winapi;
-#[cfg(all(target_os = "windows", feature = "win32"))]
-use lib_win32 as inner_imp;
 
-#[cfg(target_os="macos")]
-mod lib_cocoa;
 #[macro_use]
 #[cfg(target_os="macos")]
 extern crate plygui_cocoa;
@@ -26,11 +20,7 @@ extern crate objc;
 extern crate cocoa;
 #[cfg(target_os="macos")]
 extern crate core_foundation;
-#[cfg(target_os="macos")]
-use lib_cocoa as inner_imp;
 
-#[cfg(feature = "qt5")]
-mod lib_qt;
 #[macro_use]
 #[cfg(feature = "qt5")]
 extern crate plygui_qt;
@@ -40,11 +30,7 @@ extern crate qt_core;
 extern crate qt_widgets;
 #[cfg(feature = "qt5")]
 extern crate qt_gui;
-#[cfg(feature = "qt5")]
-use lib_qt as inner_imp;
 
-#[cfg(feature = "gtk3")]
-mod lib_gtk;
 #[macro_use]
 #[cfg(feature = "gtk3")]
 extern crate plygui_gtk;
@@ -56,43 +42,27 @@ extern crate gdk;
 extern crate glib;
 #[cfg(feature = "gtk3")]
 extern crate pango;
-#[cfg(feature = "gtk3")]
-use lib_gtk as inner_imp;
+
+mod development;
+mod scintilla;
+mod console;
+
+pub trait Console: plygui_api::controls::Control + plygui_api::controls::HasLabel {
+	fn exec(&mut self, command: &str);
+}
+pub trait NewConsole {
+	fn new(with_command_line: bool) -> Box<Console>;
+}
 
 pub trait Scintilla: plygui_api::controls::Control {
     fn set_margin_width(&mut self, index: usize, width: isize);
 }
-
 pub trait NewScintilla {
 	fn new() -> Box<Scintilla>;
 	fn with_content(content: &str) -> Box<Scintilla>;
 }
 
 pub mod imp {
-	pub use inner_imp::Scintilla;
-}
-	
-pub mod development {
-	use plygui_api::development::*;
-	
-	pub trait ScintillaInner: ControlInner {
-		fn new() -> Box<super::Scintilla>;
-		fn with_content(content: &str) -> Box<super::Scintilla>;
-		fn set_margin_width(&mut self, index: usize, width: isize);
-	}
-	
-	impl <T: ScintillaInner + Sized + 'static> super::Scintilla for Member<Control<T>> {
-		fn set_margin_width(&mut self, index: usize, width: isize) {
-			self.as_inner_mut().as_inner_mut().set_margin_width(index, width)
-		}
-	}
-	// still bloody but less fucking orphan rules
-	impl <T: ScintillaInner + Sized> super::NewScintilla for Member<Control<T>> {
-		fn new() -> Box<super::Scintilla> {
-			T::new()
-		}
-		fn with_content(content: &str) -> Box<super::Scintilla> {
-			T::with_content(content)
-		}
-	} 
+	pub use scintilla::Scintilla;
+	pub use console::Console;
 }

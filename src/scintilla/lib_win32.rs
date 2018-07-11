@@ -39,7 +39,7 @@ pub struct ScintillaWin32 {
 }
 
 impl scintilla_dev::ScintillaInner for ScintillaWin32 {
-	fn new() -> Box<super::Scintilla> {
+	fn new() -> Box<Scintilla> {
 		if GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
             unsafe { 
                 if Scintilla_RegisterClasses(common::hinstance() as *mut c_void) == 0 {
@@ -58,7 +58,7 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
         //b.set_layout_padding(layout::BoundarySize::AllTheSame(DEFAULT_PADDING).into());
         b
 	}
-	fn with_content(content: &str) -> Box<super::Scintilla> {
+	fn with_content(content: &str) -> Box<Scintilla> {
 		let mut b = Self::new();
 		// TODO content :)
 		b
