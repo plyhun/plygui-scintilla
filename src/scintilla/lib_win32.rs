@@ -34,7 +34,8 @@ pub type Scintilla = Member<Control<ScintillaWin32>>;
 pub struct ScintillaWin32 {
     base: common::WindowsControlBase<Scintilla>,
     
-    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int)>,
+    ui_cb: Option<scintilla_dev::Custom>,
+    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int) -> c_int>,
     self_ptr: Option<*mut c_void>,
 }
 
@@ -50,6 +51,7 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
         let b: Box<Scintilla> = Box::new(Member::with_inner(Control::with_inner(
         		ScintillaWin32 {
 		            base: common::WindowsControlBase::new(),
+		            ui_cb: None,
 		            fn_ptr: None,
 		            self_ptr: None,
 		        }, ()),
@@ -57,6 +59,9 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
         ));
         //b.set_layout_padding(layout::BoundarySize::AllTheSame(DEFAULT_PADDING).into());
         b
+	}
+	fn on_ui_update(&mut self, cb: Option<scintilla_dev::Custom>) {
+	    self.ui_cb = cb;
 	}
 	fn with_content(content: &str) -> Box<Scintilla> {
 		let mut b = Self::new();
@@ -68,6 +73,38 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
             (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
         }
 	}
+	fn set_readonly(&mut self, readonly: bool) {
+	    if let Some(fn_ptr) = self.fn_ptr {
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETREADONLY as i32, if readonly {1} else {0}, 0);
+        }
+	}
+    fn is_readonly(&self) -> bool {
+        if let Some(fn_ptr) = self.fn_ptr {
+            if (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_GETREADONLY as i32, 0, 0) == 0 { false } else { true }
+        } else {
+            true
+        }
+    }
+    fn set_codepage(&mut self, cp: super::Codepage) {
+        if let Some(fn_ptr) = self.fn_ptr {
+            ((fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETCODEPAGE as i32, cp as isize as i32, 0) as isize);
+        }
+    }
+    fn codepage(&self) -> super::Codepage {
+        if let Some(fn_ptr) = self.fn_ptr {
+            ((fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_GETCODEPAGE as i32, 0, 0) as isize).into()
+        } else {
+            Default::default()
+        }
+    }
+    fn append_text(&mut self, text: &str) {
+        self.set_codepage(super::Codepage::Utf8);
+        if let Some(fn_ptr) = self.fn_ptr {
+            let len = text.len();
+            let tptr = text.as_bytes().as_ptr();
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_APPENDTEXT as i32, len as c_int, tptr as c_int);
+        }
+    }
 }
 
 impl ControlInner for ScintillaWin32 {
@@ -263,7 +300,10 @@ unsafe extern "system" fn handler(hwnd: windef::HWND, msg: minwindef::UINT, wpar
         }
         _ => {}
     }
-
+    if let Some(ref mut cb) = sc.as_inner_mut().as_inner_mut().ui_cb {
+        let mut sc2: &mut Scintilla = mem::transmute(param);
+        (cb.as_mut())(sc2);
+    }
     commctrl::DefSubclassProc(hwnd, msg, wparam, lparam)
 }
 

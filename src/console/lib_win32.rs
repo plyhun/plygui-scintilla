@@ -7,12 +7,16 @@ use plygui_win32::common;
 
 use winapi::shared::windef;
 use winapi::shared::minwindef;
+use winapi::um::winnt;
+use winapi::um::winbase;
+use winapi::um::processenv;
+use winapi::um::namedpipeapi;
 use winapi::um::winuser;
 use winapi::um::commctrl;
 use winapi::um::wincon;
 use winapi::um::consoleapi;
 
-use std::thread;
+use std::{mem, thread};
 use std::sync::mpsc;
 //use std::os::windows::ffi::OsStrExt;
 //use std::ffi::OsStr;
@@ -91,22 +95,23 @@ impl ControlInner for ConsoleWin32 {
 		let (tx_in, tx_out) = mpsc::channel();
 		self.tx = Some(tx_in);
 		let rx_in = self.rx_in.clone();
-		self.cmd = ConsoleThread::Running(thread::Builder::new().name(name).spawn(move ||{
+		self.cmd = ConsoleThread::Running(thread::Builder::new().name(name).spawn(move || {
+		    let mut console_info: wincon::CONSOLE_SCREEN_BUFFER_INFO = unsafe { mem::zeroed() };        
     		unsafe { 
     		    consoleapi::AllocConsole(); 
-    		    
-    		    loop {
-    		        match tx_out.try_recv() {
-    		            Ok(cmd) => match cmd {
-    		                TxCommand::Exit => break,
-    		            },
-    		            Err(_) => {
-    		                let _ = rx_in.send(RxCommand::Error);
-    		                break;
-    		            }
-    		        }
-    		    }
-    		}
+    		    wincon::GetConsoleScreenBufferInfo(processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE), &mut console_info);
+    		}    
+		    loop {
+		        match tx_out.try_recv() {
+		            Ok(cmd) => match cmd {
+		                TxCommand::Exit => break,
+		            },
+		            Err(_) => {
+		                let _ = rx_in.send(RxCommand::Error);
+		                break;
+		            }
+		        }
+		    }    		
 		}).unwrap());
 	}
     fn on_removed_from_container(&mut self, base: &mut MemberControlBase, parent: &controls::Container) {

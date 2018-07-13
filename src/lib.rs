@@ -11,14 +11,14 @@ extern crate plygui_win32;
 extern crate winapi;
 
 #[macro_use]
-#[cfg(target_os="macos")]
+#[cfg(all(target_os = "macos", feature = "cocoa_"))]
 extern crate plygui_cocoa;
-#[cfg(target_os="macos")]
+#[cfg(all(target_os = "macos", feature = "cocoa_"))]
 #[macro_use]
 extern crate objc;
-#[cfg(target_os="macos")]
+#[cfg(all(target_os = "macos", feature = "cocoa_"))]
 extern crate cocoa;
-#[cfg(target_os="macos")]
+#[cfg(all(target_os = "macos", feature = "cocoa_"))]
 extern crate core_foundation;
 
 #[macro_use]
@@ -56,10 +56,44 @@ pub trait NewConsole {
 
 pub trait Scintilla: plygui_api::controls::Control {
     fn set_margin_width(&mut self, index: usize, width: isize);
+    fn set_readonly(&mut self, readonly: bool);
+    fn is_readonly(&self) -> bool;
+    /*fn set_codepage(&mut self, cp: Codepage); // if we manipulate UTF8 only, why do we need this publicly?
+    fn codepage(&self) -> Codepage;*/ 
+    fn append_text(&mut self, text: &str);
 }
 pub trait NewScintilla {
 	fn new() -> Box<Scintilla>;
 	fn with_content(content: &str) -> Box<Scintilla>;
+}
+
+pub enum Codepage {
+    Ascii = 0isize,
+    Utf8 = 65001isize, 
+    ShiftJis = 932isize, 
+    ChineseSimplifiedGbk = 936isize, 
+    KoreanUnifiedHangul = 949isize, 
+    ChineseTraditionalBig5 = 950isize, 
+    KoreanJohab = 1361isize
+}
+impl From<isize> for Codepage {
+    fn from(i: isize) -> Self {
+        match i {
+            0isize => Codepage::Ascii,
+            65001isize => Codepage::Utf8,
+            932isize => Codepage::ShiftJis,
+            936isize => Codepage::ChineseSimplifiedGbk,
+            949isize => Codepage::KoreanUnifiedHangul,
+            950isize => Codepage::ChineseTraditionalBig5,
+            1361isize => Codepage::KoreanJohab,
+            _ => { panic!("Unsupported codepage id: {}", i) }
+        }
+    }
+}
+impl Default for Codepage {
+    fn default() -> Self {
+        Codepage::Utf8
+    }
 }
 
 pub mod imp {
