@@ -21,7 +21,7 @@ type ScintillaNative = super::scintilla::lib_qt::ScintillaQt;
 #[cfg(feature = "gtk3")]
 type ScintillaNative = super::scintilla::lib_gtk::ScintillaGtk;
 
-use std::{process, thread};
+use std::{process, thread, io};
 use std::sync::mpsc;
 //use std::os::windows::ffi::OsStrExt;
 //use std::ffi::OsStr;
@@ -39,6 +39,8 @@ enum TxCommand {
     Exit
 }
 enum RxCommand {
+    Ready(Option<i32>),
+    Line(String),
     Error,
 }
 
@@ -66,11 +68,14 @@ impl scintilla_dev::ConsoleInner for ConsoleWin32 {
 		        }, ()),
         		MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
         ));
+		//b.scintilla.base.
         //b.set_layout_padding(layout::BoundarySize::AllTheSame(DEFAULT_PADDING).into());
         b.as_inner_mut().as_inner_mut().scintilla.on_ui_update(Some((move |sc: &mut super::Scintilla| {
             match rx_out.try_recv() {
                 Ok(cmd) => match cmd {
                     RxCommand::Error => {},
+                    RxCommand::Line(ref line) => sc.append_text(line.as_str()),
+                    RxCommand::Ready(_code) => sc.append_text("Done\n"), 
                 },
                 Err(_) => {}
             }
@@ -112,20 +117,50 @@ impl ControlInner for ConsoleWin32 {
 		};
 		let (tx_in, tx_out) = mpsc::channel();
 		let rx_in = self.rx_in.clone();
+		
 		self.cmd = ConsoleThread::Running(thread::Builder::new().name(name).spawn(move || {
+		      //TODO exit/close requested      
     		  loop {
     		      match tx_out.recv() {
     		          Ok(cmd) => {
     		              match cmd {
     		                  TxCommand::Exit => break,
             		          TxCommand::Execute(cmd, args) => {
-            		              process::Command::new(cmd).args(args)
-                		              .stdin(process::Stdio::inherit())
-                		              .stdout(process::Stdio::inherit())
-                		              .stderr(process::Stdio::inherit())
-                		              .spawn().unwrap();
-                		              
-                		          let _ = rx_in.send(RxCommand::Error);    
+            		              use std::io::BufRead;
+            		              
+            		              println!("{} {:?}", cmd, args);
+            		              
+            		              match process::Command::new(cmd).args(args)
+                		              .stdout(process::Stdio::piped())
+                		              .stderr(process::Stdio::piped())
+                		              .spawn() {
+                    		          Ok(mut cmd) => {
+                        		            let out = io::BufReader::new(cmd.stdout.take().unwrap());
+                                            let err = io::BufReader::new(cmd.stderr.take().unwrap());
+                                        
+                                            let rx_in2 = rx_in.clone();
+                                            let thread = thread::spawn(move || {
+                                                err.lines().for_each(|line| {
+                                                    let _ = rx_in2.send(RxCommand::Line(line.unwrap() + "\n"));
+                                                });
+                                            });
+                                            let rx_in3 = rx_in.clone();
+                                            out.lines().for_each(|line| {
+                                                let _ = rx_in3.send(RxCommand::Line(line.unwrap() + "\n"));
+                                            });
+                                        
+                                            thread.join().unwrap();
+                                        
+                                            let status = cmd.wait().unwrap();
+                                          
+                        		              
+                        		          let _ = rx_in.send(RxCommand::Ready(status.code())); 
+                    		          },
+                    		          Err(e) => {
+                    		              println!("Error creating command: {}", e);
+                        		          let _ = rx_in.send(RxCommand::Error); 
+                    		          }    
+                		          }
             		          }
     		              }
     		          },
@@ -140,7 +175,7 @@ impl ControlInner for ConsoleWin32 {
         let name = match self.cmd {
             ConsoleThread::Idle(_) => unreachable!(),
             ConsoleThread::Running(ref handle, ref tx) => {
-                tx.send(TxCommand::Exit);
+                let _ = tx.send(TxCommand::Exit);
                 handle.thread().name().unwrap_or(NO_CONSOLE_NAME).to_owned()
             }
         };
