@@ -202,12 +202,6 @@ impl ControlInner for ConsoleWin32 {
     }
 }
 
-impl Drop for ConsoleWin32 {
-    fn drop(&mut self) {
-        
-    }
-}
-
 impl HasLayoutInner for ConsoleWin32 {
 	fn on_layout_changed(&mut self, base: &mut MemberBase) {
 		self.scintilla.on_layout_changed(base)

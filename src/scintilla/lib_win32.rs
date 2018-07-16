@@ -64,8 +64,10 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
 	    self.ui_cb = cb;
 	}
 	fn with_content(content: &str) -> Box<Scintilla> {
+	    use Scintilla;
+	    
 		let mut b = Self::new();
-		// TODO content :)
+		b.append_text(content);
 		b
 	}
 	fn set_margin_width(&mut self, index: usize, width: isize) {
