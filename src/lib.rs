@@ -27,54 +27,55 @@ extern crate plygui_qt;
 #[cfg(feature = "qt5")]
 extern crate qt_core;
 #[cfg(feature = "qt5")]
-extern crate qt_widgets;
-#[cfg(feature = "qt5")]
 extern crate qt_gui;
+#[cfg(feature = "qt5")]
+extern crate qt_widgets;
 
 #[macro_use]
 #[cfg(feature = "gtk3")]
 extern crate plygui_gtk;
 #[cfg(feature = "gtk3")]
-extern crate gtk;
-#[cfg(feature = "gtk3")]
 extern crate gdk;
 #[cfg(feature = "gtk3")]
 extern crate glib;
 #[cfg(feature = "gtk3")]
+extern crate gtk;
+#[cfg(feature = "gtk3")]
 extern crate pango;
 
+mod console;
 mod development;
 mod scintilla;
-mod console;
 
 pub trait Console: plygui_api::controls::Control + plygui_api::controls::HasLabel {
-	fn exec(&mut self, command: &str);
+    fn exec(&mut self, command: &str);
 }
 pub trait NewConsole {
-	fn new(with_command_line: bool) -> Box<Console>;
+    fn new(with_command_line: bool) -> Box<Console>;
 }
 
 pub trait Scintilla: plygui_api::controls::Control {
     fn set_margin_width(&mut self, index: usize, width: isize);
     fn set_readonly(&mut self, readonly: bool);
     fn is_readonly(&self) -> bool;
-    /*fn set_codepage(&mut self, cp: Codepage); // if we manipulate UTF8 only, why do we need this publicly?
-    fn codepage(&self) -> Codepage;*/ 
+    /*fn set_codepage(&mut self, cp: Codepage); // if we manipulate UTF8 only, do we need this in public?
+    fn codepage(&self) -> Codepage;*/
+
     fn append_text(&mut self, text: &str);
 }
 pub trait NewScintilla {
-	fn new() -> Box<Scintilla>;
-	fn with_content(content: &str) -> Box<Scintilla>;
+    fn new() -> Box<Scintilla>;
+    fn with_content(content: &str) -> Box<Scintilla>;
 }
 
 pub enum Codepage {
     Ascii = 0isize,
-    Utf8 = 65001isize, 
-    ShiftJis = 932isize, 
-    ChineseSimplifiedGbk = 936isize, 
-    KoreanUnifiedHangul = 949isize, 
-    ChineseTraditionalBig5 = 950isize, 
-    KoreanJohab = 1361isize
+    Utf8 = 65001isize,
+    ShiftJis = 932isize,
+    ChineseSimplifiedGbk = 936isize,
+    KoreanUnifiedHangul = 949isize,
+    ChineseTraditionalBig5 = 950isize,
+    KoreanJohab = 1361isize,
 }
 impl From<isize> for Codepage {
     fn from(i: isize) -> Self {
@@ -86,7 +87,7 @@ impl From<isize> for Codepage {
             949isize => Codepage::KoreanUnifiedHangul,
             950isize => Codepage::ChineseTraditionalBig5,
             1361isize => Codepage::KoreanJohab,
-            _ => { panic!("Unsupported codepage id: {}", i) }
+            _ => panic!("Unsupported codepage id: {}", i),
         }
     }
 }
@@ -97,6 +98,6 @@ impl Default for Codepage {
 }
 
 pub mod imp {
-	pub use scintilla::Scintilla;
-	pub use console::Console;
+    pub use console::Console;
+    pub use scintilla::Scintilla;
 }

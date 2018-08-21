@@ -1,88 +1,79 @@
 use super::development as scintilla_dev;
 
-use plygui_api::{layout, types, utils, controls};
-use plygui_api::development::*;		
-		
-use plygui_win32::common;
+use plygui_win32::common::*;
 use scintilla_sys::{Scintilla_RegisterClasses, Scintilla_ReleaseResources};
 
-use winapi::shared::windef;
-use winapi::shared::minwindef;
-use winapi::um::winuser;
-use winapi::um::commctrl;
-use winapi::ctypes::c_void as win_void;
-
-use std::{ptr, mem};
-use std::os::windows::ffi::OsStrExt;
-use std::os::raw::{c_void, c_int};
-use std::ffi::OsStr;
-use std::cmp::max;
+use std::os::raw::{c_int, c_void as r_void};
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 static GLOBAL_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
 
 lazy_static! {
-	pub static ref WINDOW_CLASS: Vec<u16> = OsStr::new("Scintilla")
-        .encode_wide()
-        .chain(Some(0).into_iter())
-        .collect::<Vec<_>>();
+    pub static ref WINDOW_CLASS: Vec<u16> = OsStr::new("Scintilla").encode_wide().chain(Some(0).into_iter()).collect::<Vec<_>>();
 }
 
 pub type Scintilla = Member<Control<ScintillaWin32>>;
 
 #[repr(C)]
 pub struct ScintillaWin32 {
-    base: common::WindowsControlBase<Scintilla>,
-    
+    base: WindowsControlBase<Scintilla>,
+
     ui_cb: Option<scintilla_dev::Custom>,
-    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int) -> c_int>,
-    self_ptr: Option<*mut c_void>,
+    fn_ptr: Option<extern "C" fn(*mut r_void, c_int, c_int, c_int) -> c_int>,
+    self_ptr: Option<*mut r_void>,
 }
 
 impl scintilla_dev::ScintillaInner for ScintillaWin32 {
-	fn new() -> Box<Scintilla> {
-		if GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
-            unsafe { 
-                if Scintilla_RegisterClasses(common::hinstance() as *mut c_void) == 0 {
+    fn new() -> Box<Scintilla> {
+        if GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
+            unsafe {
+                if Scintilla_RegisterClasses(hinstance() as *mut r_void) == 0 {
                     panic!("Cannot register Scintilla Win32 class");
                 }
             }
         }
-        let b: Box<Scintilla> = Box::new(Member::with_inner(Control::with_inner(
-        		ScintillaWin32 {
-		            base: common::WindowsControlBase::new(),
-		            ui_cb: None,
-		            fn_ptr: None,
-		            self_ptr: None,
-		        }, ()),
-        		MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
+        let b: Box<Scintilla> = Box::new(Member::with_inner(
+            Control::with_inner(
+                ScintillaWin32 {
+                    base: WindowsControlBase::new(),
+                    ui_cb: None,
+                    fn_ptr: None,
+                    self_ptr: None,
+                },
+                (),
+            ),
+            MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
         ));
         //b.set_layout_padding(layout::BoundarySize::AllTheSame(DEFAULT_PADDING).into());
         b
-	}
-	fn on_ui_update(&mut self, cb: Option<scintilla_dev::Custom>) {
-	    self.ui_cb = cb;
-	}
-	fn with_content(content: &str) -> Box<Scintilla> {
-	    use Scintilla;
-	    
-		let mut b = Self::new();
-		b.append_text(content);
-		b
-	}
-	fn set_margin_width(&mut self, index: usize, width: isize) {
-		if let Some(fn_ptr) = self.fn_ptr {
+    }
+    fn on_ui_update(&mut self, cb: Option<scintilla_dev::Custom>) {
+        self.ui_cb = cb;
+    }
+    fn with_content(content: &str) -> Box<Scintilla> {
+        use Scintilla;
+
+        let mut b = Self::new();
+        b.append_text(content);
+        b
+    }
+    fn set_margin_width(&mut self, index: usize, width: isize) {
+        if let Some(fn_ptr) = self.fn_ptr {
             (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
         }
-	}
-	fn set_readonly(&mut self, readonly: bool) {
-	    if let Some(fn_ptr) = self.fn_ptr {
-            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETREADONLY as i32, if readonly {1} else {0}, 0);
+    }
+    fn set_readonly(&mut self, readonly: bool) {
+        if let Some(fn_ptr) = self.fn_ptr {
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETREADONLY as i32, if readonly { 1 } else { 0 }, 0);
         }
-	}
+    }
     fn is_readonly(&self) -> bool {
         if let Some(fn_ptr) = self.fn_ptr {
-            if (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_GETREADONLY as i32, 0, 0) == 0 { false } else { true }
+            if (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_GETREADONLY as i32, 0, 0) == 0 {
+                false
+            } else {
+                true
+            }
         } else {
             true
         }
@@ -110,107 +101,84 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
 }
 
 impl ControlInner for ScintillaWin32 {
-	fn on_added_to_container(&mut self, base: &mut MemberControlBase, parent: &controls::Container, x: i32, y: i32) {
-		let selfptr = base as *mut _ as *mut win_void;
-        let (pw, ph) = parent.size();
-        //let (lp,tp,rp,bp) = base.control.layout.padding.into();
-        let (lm, tm, rm, bm) = base.control.layout.margin.into();
+    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container, x: i32, y: i32) {
+        let selfptr = member as *mut _ as *mut c_void;
+        let (pw, ph) = parent.draw_area_size();
         let (hwnd, id) = unsafe {
             self.base.hwnd = parent.native_id() as windef::HWND; // required for measure, as we don't have own hwnd yet
-            let (w, h, _) = self.measure(base, pw, ph);
-            common::create_control_hwnd(
-                x as i32 + lm,
-                y as i32 + tm,
-                w as i32 - rm,
-                h as i32 - bm,
-                parent.native_id() as windef::HWND,
-                0,
-                WINDOW_CLASS.as_ptr(),
-                "",
-                winuser::BS_PUSHBUTTON | winuser::WS_TABSTOP,
-                selfptr,
-                Some(handler),
-            )
+            let (w, h, _) = self.measure(member, control, pw, ph);
+            create_control_hwnd(x as i32, y as i32, w as i32, h as i32, parent.native_id() as windef::HWND, 0, WINDOW_CLASS.as_ptr(), "", winuser::BS_PUSHBUTTON | winuser::WS_TABSTOP, selfptr, Some(handler))
         };
         self.base.hwnd = hwnd;
         self.base.subclass_id = id;
-        
+
         unsafe {
             self.fn_ptr = Some(mem::transmute(winuser::SendMessageW(self.base.hwnd, super::scintilla_sys::SCI_GETDIRECTFUNCTION, 0, 0)));
-            self.self_ptr = Some(winuser::SendMessageW(self.base.hwnd, super::scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0) as *mut c_void);
+            self.self_ptr = Some(winuser::SendMessageW(self.base.hwnd, super::scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0) as *mut r_void);
         }
-	}
-    fn on_removed_from_container(&mut self, _: &mut MemberControlBase, _: &controls::Container) {
-    	common::destroy_hwnd(self.base.hwnd, self.base.subclass_id, Some(handler));
+    }
+    fn on_removed_from_container(&mut self, _member: &mut MemberBase, _control: &mut ControlBase, _: &controls::Container) {
+        destroy_hwnd(self.base.hwnd, self.base.subclass_id, Some(handler));
         self.base.hwnd = 0 as windef::HWND;
         self.base.subclass_id = 0;
         self.fn_ptr = None;
         self.self_ptr = None;
     }
-    
+
     fn parent(&self) -> Option<&controls::Member> {
-		self.base.parent().map(|p| p.as_member())
-	}
+        self.base.parent().map(|p| p.as_member())
+    }
     fn parent_mut(&mut self) -> Option<&mut controls::Member> {
-    	self.base.parent_mut().map(|p| p.as_member_mut())
+        self.base.parent_mut().map(|p| p.as_member_mut())
     }
     fn root(&self) -> Option<&controls::Member> {
-    	self.base.root().map(|p| p.as_member())
+        self.base.root().map(|p| p.as_member())
     }
     fn root_mut(&mut self) -> Option<&mut controls::Member> {
-    	self.base.root_mut().map(|p| p.as_member_mut())
+        self.base.root_mut().map(|p| p.as_member_mut())
     }
-    
+
     #[cfg(feature = "markup")]
     fn fill_from_markup(&mut self, base: &mut development::MemberControlBase, markup: &plygui_api::markup::Markup, registry: &mut plygui_api::markup::MarkupRegistry) {
-    	fill_from_markup_base!(self, base, markup, registry, Scintilla, ["Scintilla"]);
+        fill_from_markup_base!(self, base, markup, registry, Scintilla, ["Scintilla"]);
     }
 }
 
 impl Drop for ScintillaWin32 {
     fn drop(&mut self) {
         if GLOBAL_COUNT.fetch_sub(1, Ordering::SeqCst) < 1 {
-            unsafe { Scintilla_ReleaseResources(); }
+            unsafe {
+                Scintilla_ReleaseResources();
+            }
         }
     }
 }
 
 impl HasLayoutInner for ScintillaWin32 {
-	fn on_layout_changed(&mut self, base: &mut MemberBase) {
-		let hwnd = self.base.hwnd;
+    fn on_layout_changed(&mut self, _base: &mut MemberBase) {
+        let hwnd = self.base.hwnd;
         if !hwnd.is_null() {
-        	let base = self.cast_base_mut(base);
-        	self.invalidate(base);
-		}
-	}
+            self.base.invalidate();
+        }
+    }
 }
 
 impl MemberInner for ScintillaWin32 {
-	type Id = common::Hwnd;
-	
-	fn size(&self) -> (u16, u16) {
-        let rect = unsafe { common::window_rect(self.base.hwnd) };
-        (
-            (rect.right - rect.left) as u16,
-            (rect.bottom - rect.top) as u16,
-        )
+    type Id = Hwnd;
+
+    fn size(&self) -> (u16, u16) {
+        let rect = unsafe { window_rect(self.base.hwnd) };
+        ((rect.right - rect.left) as u16, (rect.bottom - rect.top) as u16)
     }
 
     fn on_set_visibility(&mut self, base: &mut MemberBase) {
-	    let hwnd = self.base.hwnd;
+        let hwnd = self.base.hwnd;
         if !hwnd.is_null() {
-        	unsafe {
-	            winuser::ShowWindow(
-	                self.base.hwnd,
-	                if base.visibility == types::Visibility::Visible {
-	                    winuser::SW_SHOW
-	                } else {
-	                    winuser::SW_HIDE
-	                },
-	            );
-	        }
-			self.invalidate(utils::member_control_base_mut(common::member_from_hwnd::<Scintilla>(hwnd)));
-	    }
+            unsafe {
+                winuser::ShowWindow(self.base.hwnd, if base.visibility == types::Visibility::Visible { winuser::SW_SHOW } else { winuser::SW_HIDE });
+            }
+            self.base.invalidate();
+        }
     }
     unsafe fn native_id(&self) -> Self::Id {
         self.base.hwnd.into()
@@ -218,69 +186,49 @@ impl MemberInner for ScintillaWin32 {
 }
 
 impl Drawable for ScintillaWin32 {
-	fn draw(&mut self, base: &mut MemberControlBase, coords: Option<(i32, i32)>) {
-		if coords.is_some() {
+    fn draw(&mut self, _member: &mut MemberBase, _control: &mut ControlBase, coords: Option<(i32, i32)>) {
+        if coords.is_some() {
             self.base.coords = coords;
         }
-        //let (lp,tp,rp,bp) = base.control.layout.padding.into();
-        let (lm, tm, rm, bm) = base.control.layout.margin.into();
         if let Some((x, y)) = self.base.coords {
             unsafe {
-                winuser::SetWindowPos(
-                    self.base.hwnd,
-                    ptr::null_mut(),
-                    x + lm,
-                    y + tm,
-                    self.base.measured_size.0 as i32 - rm,
-                    self.base.measured_size.1 as i32 - bm,
-                    0,
-                );
+                winuser::SetWindowPos(self.base.hwnd, ptr::null_mut(), x, y, self.base.measured_size.0 as i32, self.base.measured_size.1 as i32, 0);
             }
         }
-	}
-    fn measure(&mut self, base: &mut MemberControlBase, w: u16, h: u16) -> (u16, u16, bool) {
-    	let old_size = self.base.measured_size;
-        let (lp,tp,rp,bp) = base.control.layout.padding.into();
-        let (lm, tm, rm, bm) = base.control.layout.margin.into();
-        
-        self.base.measured_size = match base.member.visibility {
+    }
+    fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, w: u16, h: u16) -> (u16, u16, bool) {
+        let old_size = self.base.measured_size;
+        self.base.measured_size = match member.visibility {
             types::Visibility::Gone => (0, 0),
             _ => {
-                let w = match base.control.layout.width {
+                let w = match control.layout.width {
                     layout::Size::MatchParent => w,
                     layout::Size::Exact(w) => w,
                     layout::Size::WrapContent => {
                         42 as u16 // TODO min_width
-                    } 
+                    }
                 };
-                let h = match base.control.layout.height {
+                let h = match control.layout.height {
                     layout::Size::MatchParent => h,
                     layout::Size::Exact(h) => h,
                     layout::Size::WrapContent => {
                         42 as u16 // TODO min_height
-                    } 
+                    }
                 };
-                (
-                    max(0, w as i32 + lm + rm + lp + rp) as u16,
-                    max(0, h as i32 + tm + bm + tp + bp) as u16,
-                )
-            },
+                (cmp::max(0, w as i32) as u16, cmp::max(0, h as i32) as u16)
+            }
         };
-        (
-            self.base.measured_size.0,
-            self.base.measured_size.1,
-            self.base.measured_size != old_size,
-        )
+        (self.base.measured_size.0, self.base.measured_size.1, self.base.measured_size != old_size)
     }
-    fn invalidate(&mut self, base: &mut MemberControlBase) {
-    	self.base.invalidate(base)
+    fn invalidate(&mut self, _member: &mut MemberBase, _control: &mut ControlBase) {
+        self.base.invalidate()
     }
 }
 
 #[allow(dead_code)]
 pub(crate) fn spawn() -> Box<controls::Control> {
-	use super::NewScintilla;
-	
+    use super::NewScintilla;
+
     Scintilla::new().into_control()
 }
 
@@ -295,10 +243,7 @@ unsafe extern "system" fn handler(hwnd: windef::HWND, msg: minwindef::UINT, wpar
             let width = lparam as u16;
             let height = (lparam >> 16) as u16;
 
-            if let Some(ref mut cb) = sc.base_mut().handler_resize {
-                let mut sc2: &mut Scintilla = mem::transmute(param);
-                (cb.as_mut())(sc2, width, height);
-            }
+            sc.call_on_resize(width, height);
         }
         _ => {}
     }
