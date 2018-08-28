@@ -44,18 +44,10 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
             ),
             MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
         ));
-        //b.set_layout_padding(layout::BoundarySize::AllTheSame(DEFAULT_PADDING).into());
         b
     }
     fn on_ui_update(&mut self, cb: Option<scintilla_dev::Custom>) {
         self.ui_cb = cb;
-    }
-    fn with_content(content: &str) -> Box<Scintilla> {
-        use Scintilla;
-
-        let mut b = Self::new();
-        b.append_text(content);
-        b
     }
     fn set_margin_width(&mut self, index: usize, width: isize) {
         if let Some(fn_ptr) = self.fn_ptr {
@@ -101,9 +93,8 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
 }
 
 impl ControlInner for ScintillaWin32 {
-    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container, x: i32, y: i32) {
+    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         let selfptr = member as *mut _ as *mut c_void;
-        let (pw, ph) = parent.draw_area_size();
         let (hwnd, id) = unsafe {
             self.base.hwnd = parent.native_id() as windef::HWND; // required for measure, as we don't have own hwnd yet
             let (w, h, _) = self.measure(member, control, pw, ph);

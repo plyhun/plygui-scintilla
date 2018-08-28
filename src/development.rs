@@ -3,7 +3,6 @@ use plygui_api::development::*;
 
 pub trait ScintillaInner: ControlInner {
     fn new() -> Box<Member<Control<Self>>>;
-    fn with_content(content: &str) -> Box<Member<Control<Self>>>;
     fn set_margin_width(&mut self, index: usize, width: isize);
     fn set_readonly(&mut self, readonly: bool);
     fn is_readonly(&self) -> bool;
@@ -37,7 +36,11 @@ impl<T: ScintillaInner + Sized> super::NewScintilla for Member<Control<T>> {
         T::new()
     }
     fn with_content(content: &str) -> Box<super::Scintilla> {
-        T::with_content(content)
+    	use super::Scintilla;
+    	
+        let mut sc = T::new();
+        sc.append_text(content);
+        sc
     }
 }
 

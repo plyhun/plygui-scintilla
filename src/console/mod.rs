@@ -107,8 +107,8 @@ impl HasLabelInner for ConsoleWin32 {
 }
 
 impl ControlInner for ConsoleWin32 {
-    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container, x: i32, y: i32) {
-        self.scintilla.on_added_to_container(member, control, parent, x, y);
+    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
+        self.scintilla.on_added_to_container(member, control, parent, x, y, pw, ph);
         let name = match self.cmd {
             ConsoleThread::Idle(ref name) => name.clone(),
             _ => unreachable!(),
