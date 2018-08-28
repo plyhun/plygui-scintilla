@@ -1,287 +1,177 @@
-use super::*;
+use super::development as scintilla_dev;
 
-use plygui_api::{layout, types, development, callbacks};
-use plygui_api::traits::{UiControl, UiHasLayout, UiMember, UiContainer};
-
-use plygui_qt::common;
-
+use plygui_qt::common::*;
 use scintilla_sys::*;
+use std::os::raw::{c_int, c_uint};
 
-use qt_core::connection::Signal;
-
-use std::mem;
-use std::cmp::max;
-use std::os::raw::{c_void, c_int, c_uint};
+pub type Scintilla = Member<Control<ScintillaQt>>;
 
 #[repr(C)]
-pub struct Scintilla {
-    base: common::QtControlBase,
+pub struct ScintillaQt {
+    base: QtControlBase<Scintilla, ScintillaEditBase>,
 
     h_command: (bool, SlotSCNotificationPtr<'static>),
-    
+    ui_cb: Option<scintilla_dev::Custom>,
     fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int)>,
     self_ptr: Option<*mut c_void>,
 }
 
-impl Scintilla {
-    pub fn new() -> Box<Scintilla> {
-    	let mut sc = ScintillaEditBase::new();
-        let (fn_ptr, self_ptr) = {
-            let self_ptr = sc.as_mut().send(scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0);
-        	let fn_ptr = sc.as_mut().send(scintilla_sys::SCI_GETDIRECTFUNCTION, 0, 0);
+impl scintilla_dev::ScintillaInner for ScintillaQt {
+    fn set_margin_width(&mut self, index: usize, width: isize) {
+        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETMARGINWIDTHN as u32, index as c_uint, width as c_int); }
+    }
+    fn new() -> Box<super::Scintilla> {
+        let mut sc = ScintillaEditBase::new();
+        let (fn_ptr, self_ptr) = unsafe {
+            let self_ptr = sc.as_mut().send(SCI_GETDIRECTPOINTER, 0, 0);
+            let fn_ptr = sc.as_mut().send(SCI_GETDIRECTFUNCTION, 0, 0);
             (fn_ptr, self_ptr)
         };
-        let mut sc = Box::new(Scintilla {
-                     base: common::QtControlBase::with_params(
-		                     	unsafe { 
-		                     		use qt_core::cpp_utils::StaticCast;    	
-		                     		(&mut *sc.into_raw()).static_cast_mut() as &mut common::QWidget
-		                     	},
-		                     	invalidate_impl,
-                             	development::UiMemberFunctions {
-		                             fn_member_id: member_id,
-								     fn_is_control: is_control,
-								     fn_is_control_mut: is_control_mut,
-								     fn_size: size,
-	                            },
-                             	event_handler,
-                             ),
-                     h_command: (false, SlotSCNotificationPtr::new(move |_|{ println!("AAA!!") })),
-                     fn_ptr: Some(unsafe { mem::transmute(fn_ptr) }),
-				     self_ptr: Some(self_ptr as *mut c_void),
-                 });
+        let mut sc = Box::new(Member::with_inner(
+            Control::with_inner(
+                ScintillaQt {
+                    base: QtControlBase::with_params(sc, event_handler),
+                    ui_cb: None,
+                    h_command: (false, SlotSCNotificationPtr::new(move |_| {})),
+                    fn_ptr: Some(unsafe { mem::transmute(fn_ptr) }),
+                    self_ptr: Some(self_ptr as *mut c_void),
+                },
+                (),
+            ),
+            MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
+        ));
         unsafe {
-        	use qt_core::cpp_utils::StaticCast;    	
-	    	let ptr = sc.as_ref() as *const _ as u64;
-        	let qo: &mut common::QObject = sc.base.widget.static_cast_mut();
-        	qo.set_property(common::PROPERTY.as_ptr() as *const i8, &common::QVariant::new0(ptr));
+            use qt_core::cpp_utils::StaticCast;
+            let ptr = sc.as_ref() as *const _ as u64;
+            let qo: &mut QObject = sc.as_inner_mut().as_inner_mut().base.widget.static_cast_mut();
+            qo.set_property(PROPERTY.as_ptr() as *const i8, &QVariant::new0(ptr));
         }
-        unsafe {
-        	use qt_core::cpp_utils::UnsafeStaticCast;
-        	let qo: *mut ScintillaEditBase = sc.base.widget.static_cast_mut();
-        	(&mut *qo).signals().notify().connect(&sc.h_command.1);
-        }
+        sc.as_inner().as_inner().base.widget.signals().notify().connect(&sc.as_inner().as_inner().h_command.1);
         sc
     }
-}
-
-impl UiScintilla for Scintilla {
-    fn set_margin_width(&mut self, index: usize, width: isize) {
-    	use qt_core::cpp_utils::UnsafeStaticCast;
-        /*if let Some(fn_ptr) = self.fn_ptr {
-            (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
-        }*/
-        
-        unsafe { 
-        	let qo: *mut ScintillaEditBase = self.base.widget.static_cast_mut();
-			let _ = qo.as_mut().unwrap().send(scintilla_sys::SCI_SETMARGINWIDTHN as u32, index as c_uint, width as c_int);
-        }	
+    fn set_readonly(&mut self, readonly: bool) {
+        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETREADONLY as u32, if readonly { 1 } else { 0 }, 0); }
+    }
+    fn is_readonly(&self) -> bool {
+        unsafe { self.base.widget.as_ref().send(SCI_GETREADONLY, 0, 0) as usize == 1 }
+    }
+    fn set_codepage(&mut self, cp: super::Codepage) {
+        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETCODEPAGE, cp as u32, 0); }
+    }
+    fn codepage(&self) -> super::Codepage {
+        unsafe { (self.base.widget.as_ref().send(SCI_GETCODEPAGE, 0, 0) as isize).into() }
+    }
+    fn append_text(&mut self, text: &str) {
+        self.set_codepage(super::Codepage::Utf8);
+        let len = text.len();
+        let tptr = text.as_bytes().as_ptr();
+        unsafe { self.base.widget.as_mut().send(SCI_APPENDTEXT, len as c_uint, tptr as c_int); }
+    }
+    fn on_ui_update(&mut self, cb: Option<scintilla_dev::Custom>) {
+        self.ui_cb = cb;
     }
 }
 
-impl UiHasLayout for Scintilla {
-	fn layout_width(&self) -> layout::Size {
-    	self.base.control_base.layout.width
-    }
-	fn layout_height(&self) -> layout::Size {
-		self.base.control_base.layout.height
-	}
-	fn layout_gravity(&self) -> layout::Gravity {
-		self.base.control_base.layout.gravity
-	}
-	fn layout_alignment(&self) -> layout::Alignment {
-		self.base.control_base.layout.alignment
-	}
-	fn layout_padding(&self) -> layout::BoundarySize {
-		self.base.control_base.layout.padding
-	}
-	fn layout_margin(&self) -> layout::BoundarySize {
-		self.base.control_base.layout.margin
-	}
-	
-	fn set_layout_padding(&mut self, padding: layout::BoundarySizeArgs) {
-		self.base.control_base.layout.padding = padding.into();
-		self.base.invalidate();
-	}
-	fn set_layout_margin(&mut self, margin: layout::BoundarySizeArgs) {
-		self.base.control_base.layout.margin = margin.into();
-		self.base.invalidate();
-	} 
-	fn set_layout_width(&mut self, width: layout::Size) {
-		self.base.control_base.layout.width = width;
-		self.base.invalidate();
-	}
-	fn set_layout_height(&mut self, height: layout::Size) {
-		self.base.control_base.layout.height = height;
-		self.base.invalidate();
-	}
-	fn set_layout_gravity(&mut self, gravity: layout::Gravity) {
-		self.base.control_base.layout.gravity = gravity;
-		self.base.invalidate();
-	}
-	fn set_layout_alignment(&mut self, alignment: layout::Alignment) {
-		self.base.control_base.layout.alignment = alignment;
-		self.base.invalidate();
-	}   
-	fn as_member(&self) -> &UiMember {
-		self
-	}
-	fn as_member_mut(&mut self) -> &mut UiMember {
-		self
-	}
-}
-
-impl UiControl for Scintilla {
-    fn is_container_mut(&mut self) -> Option<&mut UiContainer> {
-        None
-    }
-    fn is_container(&self) -> Option<&UiContainer> {
-        None
-    }
-    
-    fn parent(&self) -> Option<&types::UiMemberBase> {
-        self.base.parent()
-    }
-    fn parent_mut(&mut self) -> Option<&mut types::UiMemberBase> {
-        self.base.parent_mut()
-    }
-    fn root(&self) -> Option<&types::UiMemberBase> {
-        self.base.root()
-    }
-    fn root_mut(&mut self) -> Option<&mut types::UiMemberBase> {
-        self.base.root_mut()
-    }
-    fn on_added_to_container(&mut self, parent: &UiContainer, x: i32, y: i32) {
-    	use plygui_api::development::UiDrawable;
-    	
-        let (pw, ph) = parent.draw_area_size();
-        self.measure(pw, ph);
-        self.base.dirty = false;
-        self.draw(Some((x, y)));
-    }
-    fn on_removed_from_container(&mut self, _: &UiContainer) {}	
-    
-    fn as_has_layout(&self) -> &UiHasLayout {
-    	self
-    }
-	fn as_has_layout_mut(&mut self) -> &mut UiHasLayout {
-		self
-	}
-}
-
-impl UiMember for Scintilla {
-    fn set_visibility(&mut self, visibility: types::Visibility) {
-        self.base.set_visibility(visibility);
+impl HasLayoutInner for ScintillaQt {
+    fn on_layout_changed(&mut self, _base: &mut MemberBase) {
         self.base.invalidate();
     }
-    fn visibility(&self) -> types::Visibility {
-        self.base.visibility()
+}
+
+impl ControlInner for ScintillaQt {
+    fn parent(&self) -> Option<&controls::Member> {
+        self.base.parent()
+    }
+    fn parent_mut(&mut self) -> Option<&mut controls::Member> {
+        self.base.parent_mut()
+    }
+    fn root(&self) -> Option<&controls::Member> {
+        self.base.root()
+    }
+    fn root_mut(&mut self) -> Option<&mut controls::Member> {
+        self.base.root_mut()
+    }
+    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, _parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
+        self.measure(member, control, pw, ph);
+        self.base.dirty = false;
+        self.draw(member, control, Some((x, y)));
+    }
+    fn on_removed_from_container(&mut self, _member: &mut MemberBase, _control: &mut ControlBase, _: &controls::Container) {}
+}
+
+impl MemberInner for ScintillaQt {
+    type Id = QtId;
+
+    fn on_set_visibility(&mut self, base: &mut MemberBase) {
+        self.base.set_visibility(base.visibility);
+        self.base.invalidate()
     }
     fn size(&self) -> (u16, u16) {
         self.base.measured_size
     }
-    fn on_resize(&mut self, handler: Option<callbacks::Resize>) {
-        self.base.h_resize = handler;
-    }
-	
-    unsafe fn native_id(&self) -> usize {
-        self.base.widget.win_id() as usize
-    }
-    fn is_control(&self) -> Option<&UiControl> {
-    	Some(self)
-    }
-    fn is_control_mut(&mut self) -> Option<&mut UiControl> {
-    	Some(self)
-    } 
-    fn as_base(&self) -> &types::UiMemberBase {
-    	self.base.control_base.member_base.as_ref()
-    }
-    fn as_base_mut(&mut self) -> &mut types::UiMemberBase {
-    	self.base.control_base.member_base.as_mut()
+    unsafe fn native_id(&self) -> Self::Id {
+        QtId::from(self.base.widget.as_ref() as *const _ as *mut QWidget)
     }
 }
 
-impl development::UiDrawable for Scintilla {
-	fn draw(&mut self, coords: Option<(i32, i32)>) {
-    	if coords.is_some() {
-    		self.base.coords = coords;
-    	}
-    	if let Some(coords) = self.base.coords {
-			let (lm,tm,rm,bm) = self.base.control_base.layout.margin.into();
-	        self.base.widget.as_mut().move_((coords.0 as i32 + lm, coords.1 as i32 + tm));
-			self.base.widget.as_mut().set_fixed_size(
-				(self.base.measured_size.0 as i32 - lm - rm, self.base.measured_size.1 as i32 - rm - bm)
-			);
-		}
+impl Drawable for ScintillaQt {
+    fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase, coords: Option<(i32, i32)>) {
+        self.base.draw(member, control, coords);
     }
-    fn measure(&mut self, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
-    	let old_size = self.base.measured_size;
-        let (lp, tp, rp, bp) = self.base.control_base.layout.padding.into();
-        let (lm, tm, rm, bm) = self.base.control_base.layout.margin.into();
-
-        self.base.measured_size = match self.visibility() {
+    fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
+        let old_size = self.base.measured_size;
+        self.base.measured_size = match member.visibility {
             types::Visibility::Gone => (0, 0),
             _ => {
-                let w = match self.layout_width() {
-                    layout::Size::MatchParent => parent_width,
-                    layout::Size::Exact(w) => w,
-                    layout::Size::WrapContent => {
-                        42 as u16 // TODO min_width
-                    } 
+                let w = match control.layout.width {
+                    layout::Size::MatchParent => parent_width as i32,
+                    layout::Size::Exact(w) => w as i32,
+                    layout::Size::WrapContent => 42, // TODO min size
                 };
-                let h = match self.layout_height() {
-                    layout::Size::MatchParent => parent_height,
-                    layout::Size::Exact(h) => h,
-                    layout::Size::WrapContent => {
-                        42 as u16 // TODO min_height
-                    } 
+                let h = match control.layout.height {
+                    layout::Size::MatchParent => parent_height as i32,
+                    layout::Size::Exact(h) => h as i32,
+                    layout::Size::WrapContent => 42, // TODO min size
                 };
-                (
-                    max(0, w as i32 + lm + rm + lp + rp) as u16,
-                    max(0, h as i32 + tm + bm + tp + bp) as u16,
-                )
-            },
+                (cmp::max(0, w) as u16, cmp::max(0, h) as u16)
+            }
         };
         self.base.dirty = self.base.measured_size != old_size;
-        (
-            self.base.measured_size.0,
-            self.base.measured_size.1,
-            self.base.dirty,
-        )
+        (self.base.measured_size.0, self.base.measured_size.1, self.base.dirty)
+    }
+    fn invalidate(&mut self, _member: &mut MemberBase, _control: &mut ControlBase) {
+        self.base.invalidate()
     }
 }
 
 #[allow(dead_code)]
-pub(crate) fn spawn() -> Box<UiControl> {
-	Scintilla::new()
+pub(crate) fn spawn() -> Box<controls::Control> {
+    use super::NewScintilla;
+
+    Scintilla::new().into_control()
 }
 
-impl_invalidate!(Scintilla);
-impl_is_control!(Scintilla);
-impl_size!(Scintilla);
-impl_member_id!(MEMBER_ID_SCINTILLA);
-
-fn event_handler(object: &mut common::QObject, event: &common::QEvent) -> bool {
-	unsafe {
-		match event.type_() {
-			common::QEventType::Resize => {
-				let ptr = object.property(common::PROPERTY.as_ptr() as *const i8).to_u_long_long();
-				if ptr != 0 {
-					use std::mem;
-					
-					let sc: &mut Scintilla = mem::transmute(ptr);
-					if sc.base.dirty {
-						sc.base.dirty = false;
-						let (width,height) = sc.size();
-						if let Some(ref mut cb) = sc.base.h_resize {
-			                let w2: &mut Scintilla = mem::transmute(ptr);
-			                (cb.as_mut())(w2, width, height);
-			            }
-					}
-				}
-			},
-			_ => {},
-		} 
-		false
-	}
+fn event_handler(object: &mut QObject, event: &QEvent) -> bool {
+    unsafe {
+        let ptr = object.property(PROPERTY.as_ptr() as *const i8).to_u_long_long();
+        if ptr != 0 {
+            let sc: &mut Scintilla = mem::transmute(ptr);
+            match event.type_() {
+                QEventType::Resize => {
+                    if sc.as_inner().as_inner().base.dirty {
+                        sc.as_inner_mut().as_inner_mut().base.dirty = false;
+                        let (width, height) = sc.as_inner().as_inner().size();
+                        sc.call_on_resize(width, height);
+                    }
+                }
+                _ => {}
+            }
+            if let Some(ref mut cb) = sc.as_inner_mut().as_inner_mut().ui_cb {
+                let mut sc2: &mut Scintilla = mem::transmute(ptr);
+                (cb.as_mut())(sc2);
+            }
+        }
+        false
+    }
 }
+impl_all_defaults!(Scintilla);

@@ -61,11 +61,7 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
     }
     fn is_readonly(&self) -> bool {
         if let Some(fn_ptr) = self.fn_ptr {
-            if (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_GETREADONLY as i32, 0, 0) == 0 {
-                false
-            } else {
-                true
-            }
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_GETREADONLY as i32, 0, 0) != 0
         } else {
             true
         }
