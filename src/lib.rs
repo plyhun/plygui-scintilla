@@ -15,10 +15,6 @@ extern crate plygui_cocoa;
 #[cfg(all(target_os = "macos", feature = "cocoa_"))]
 #[macro_use]
 extern crate objc;
-#[cfg(all(target_os = "macos", feature = "cocoa_"))]
-extern crate cocoa;
-#[cfg(all(target_os = "macos", feature = "cocoa_"))]
-extern crate core_foundation;
 
 #[cfg(feature = "qt5")]
 extern crate plygui_qt;
