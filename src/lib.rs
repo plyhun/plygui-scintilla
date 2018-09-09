@@ -10,7 +10,6 @@ extern crate plygui_win32;
 #[cfg(all(target_os = "windows", feature = "win32"))]
 extern crate winapi;
 
-#[macro_use]
 #[cfg(all(target_os = "macos", feature = "cocoa_"))]
 extern crate plygui_cocoa;
 #[cfg(all(target_os = "macos", feature = "cocoa_"))]
@@ -21,7 +20,6 @@ extern crate cocoa;
 #[cfg(all(target_os = "macos", feature = "cocoa_"))]
 extern crate core_foundation;
 
-#[macro_use]
 #[cfg(feature = "qt5")]
 extern crate plygui_qt;
 #[cfg(feature = "qt5")]
@@ -31,7 +29,6 @@ extern crate qt_gui;
 #[cfg(feature = "qt5")]
 extern crate qt_widgets;
 
-#[macro_use]
 #[cfg(feature = "gtk3")]
 extern crate plygui_gtk;
 #[cfg(feature = "gtk3")]

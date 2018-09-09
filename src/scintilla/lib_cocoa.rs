@@ -1,96 +1,101 @@
 use super::*;
 use super::development as scintilla_dev;
 
-use plygui_api::{layout, types, development, controls};
-use plygui_api::development::HasInner;
-use plygui_cocoa::common;
+use plygui_cocoa::common::*;
 
-use self::cocoa::foundation::{NSRect, NSSize, NSPoint};
-use self::cocoa::base::id;
-
-use std::mem;
-use std::cmp::max;
 use std::os::raw::{c_void, c_int};
 
 lazy_static! {
-	static ref WINDOW_CLASS: common::RefClass = unsafe { common::register_window_class("PlyguiScintilla","ScintillaView",|_|{}) };
+	static ref WINDOW_CLASS: common::RefClass = unsafe { common::register_window_class("PlyguiScintilla", BASE_CLASS, |decl|{
+			decl.add_method(sel!(setFrameSize:), set_frame_size as extern "C" fn(&mut Object, Sel, NSSize));
+		}) };
 }
 
-pub type Scintilla = development::Member<development::Control<ScintillaCocoa>>;
+pub type Scintilla = Member<Control<ScintillaCocoa>>;
+
+const BASE_CLASS: &str = "ScintillaView";
 
 #[repr(C)]
 pub struct ScintillaCocoa {
     base: common::CocoaControlBase<Scintilla>,
     
-    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int)>,
+    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int) -> c_int>,
     self_ptr: Option<*mut c_void>,
-}
-
-impl ScintillaCocoa {
-	
 }
 
 impl scintilla_dev::ScintillaInner for ScintillaCocoa {
 	fn new() -> Box<super::Scintilla> {
-		let mut b = Box::new(development::Member::with_inner(development::Control::with_inner(ScintillaCocoa {
+		let mut b = Box::new(Member::with_inner(Control::with_inner(ScintillaCocoa {
                      base: common::CocoaControlBase::with_params(*WINDOW_CLASS),
                      fn_ptr: None,
 				     self_ptr: None,
-                 }, ()), development::MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut)));
+                 }, ()), MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut)));
 		
         unsafe {
-        	use scintilla_sys::{SCI_GETDIRECTFUNCTION, SCI_GETDIRECTPOINTER};
-        	
-	        let selfptr = b.as_mut() as *mut _ as *mut ::std::os::raw::c_void;
-        	
+        	let selfptr = b.as_mut() as *mut _ as *mut ::std::os::raw::c_void;
 	        (&mut *b.as_inner_mut().as_inner_mut().base.control).set_ivar(common::IVAR, selfptr);
-        	
-        	let fn_ptr: id = msg_send![b.as_inner_mut().as_inner_mut().base.control, message:SCI_GETDIRECTFUNCTION wParam:0 lParam:0];
-        	let self_ptr: id = msg_send![b.as_inner_mut().as_inner_mut().base.control, message:SCI_GETDIRECTPOINTER wParam:0 lParam:0];
-        	
-            b.as_inner_mut().as_inner_mut().fn_ptr = Some(mem::transmute(fn_ptr));
-            b.as_inner_mut().as_inner_mut().self_ptr = Some(mem::transmute(self_ptr));
         }
         b
 	}
-	fn with_content(content: &str) -> Box<super::Scintilla> {
-		let mut b = Box::new(development::Member::with_inner(development::Control::with_inner(ScintillaCocoa {
-                     base: common::CocoaControlBase::with_params(*WINDOW_CLASS),
-                     fn_ptr: None,
-				     self_ptr: None,
-                 }, ()), development::MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut)));
-		
-        unsafe {
-        	use scintilla_sys::{SCI_GETDIRECTFUNCTION, SCI_GETDIRECTPOINTER};
-        	
-	        let selfptr = b.as_mut() as *mut _ as *mut ::std::os::raw::c_void;
-        	
-	        (&mut *b.as_inner_mut().as_inner_mut().base.control).set_ivar(common::IVAR, selfptr);
-        	
-        	let fn_ptr: id = msg_send![b.as_inner_mut().as_inner_mut().base.control, message:SCI_GETDIRECTFUNCTION wParam:0 lParam:0];
-        	let self_ptr: id = msg_send![b.as_inner_mut().as_inner_mut().base.control, message:SCI_GETDIRECTPOINTER wParam:0 lParam:0];
-        	
-            b.as_inner_mut().as_inner_mut().fn_ptr = Some(mem::transmute(fn_ptr));
-            b.as_inner_mut().as_inner_mut().self_ptr = Some(mem::transmute(self_ptr));
-        }
-        // TODO content!
-        b
-	}
+
 	fn set_margin_width(&mut self, index: usize, width: isize) {
 		if let Some(fn_ptr) = self.fn_ptr {
             (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
         }
 	}
+	fn on_ui_update(&mut self, cb: Option<scintilla_dev::Custom>) {
+        //self.ui_cb = cb;
+    }
+    fn set_readonly(&mut self, readonly: bool) {
+        if let Some(fn_ptr) = self.fn_ptr {
+            (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETREADONLY as i32, if readonly { 1 } else { 0 }, 0);
+        }
+    }
+    fn is_readonly(&self) -> bool {
+        if let Some(fn_ptr) = self.fn_ptr {
+            (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_GETREADONLY as i32, 0, 0) != 0
+        } else {
+            true
+        }
+    }
+    fn set_codepage(&mut self, cp: Codepage) {
+        if let Some(fn_ptr) = self.fn_ptr {
+            ((fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETCODEPAGE as i32, cp as isize as i32, 0) as isize);
+        }
+    }
+    fn codepage(&self) -> super::Codepage {
+        if let Some(fn_ptr) = self.fn_ptr {
+            ((fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_GETCODEPAGE as i32, 0, 0) as isize).into()
+        } else {
+            Default::default()
+        }
+    }
+    fn append_text(&mut self, text: &str) {
+        self.set_codepage(super::Codepage::Utf8);
+        if let Some(fn_ptr) = self.fn_ptr {
+            let len = text.len();
+            let tptr = text.as_bytes().as_ptr();
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_APPENDTEXT as i32, len as c_int, tptr as c_int);
+        }
+    }
 }
 
-impl development::ControlInner for ScintillaCocoa {
-	fn on_added_to_container(&mut self, base: &mut development::MemberControlBase, parent: &controls::Container, _x: i32, _y: i32) {
-		use plygui_api::development::Drawable;
-    	
-        let (pw, ph) = parent.draw_area_size();
-        let _ = self.measure(base, pw, ph);
+impl ControlInner for ScintillaCocoa {
+	fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, _parent: &controls::Container, _x: i32, _y: i32, pw: u16, ph: u16) {
+		unsafe {
+        	use scintilla_sys::{SCI_GETDIRECTFUNCTION, SCI_GETDIRECTPOINTER};
+        	
+	        let fn_ptr: extern "C" fn(*mut c_void, c_int, c_int, c_int) -> c_int = msg_send![self.base.control, message:SCI_GETDIRECTFUNCTION wParam:0 lParam:0];
+        	let self_ptr: *mut c_void = msg_send![self.base.control, message:SCI_GETDIRECTPOINTER wParam:0 lParam:0];
+        	
+            self.fn_ptr = Some(fn_ptr);
+            self.self_ptr = Some(self_ptr);
+        }
+		self.measure(member, control, pw, ph);
 	}
-    fn on_removed_from_container(&mut self, _: &mut development::MemberControlBase, _: &controls::Container) {
+    fn on_removed_from_container(&mut self, _: &mut MemberBase, _: &mut ControlBase, _: &controls::Container) {
+    	self.fn_ptr = None;
+        self.self_ptr = None;
     	unsafe { self.base.on_removed_from_container(); }
     }
     
@@ -108,26 +113,24 @@ impl development::ControlInner for ScintillaCocoa {
     }
     
     #[cfg(feature = "markup")]
-    fn fill_from_markup(&mut self, base: &mut development::MemberControlBase, markup: &plygui_api::markup::Markup, registry: &mut plygui_api::markup::MarkupRegistry) {
+    fn fill_from_markup(&mut self, member: &mut MemberBase, control: &mut ControlBase, markup: &plygui_api::markup::Markup, registry: &mut plygui_api::markup::MarkupRegistry) {
     	fill_from_markup_base!(self, base, markup, registry, Scintilla, ["Scintilla"]);
     }
 }
 
-impl development::HasLayoutInner for ScintillaCocoa {
-	fn on_layout_changed(&mut self, _: &mut development::MemberBase) {
+impl HasLayoutInner for ScintillaCocoa {
+	fn on_layout_changed(&mut self, _: &mut MemberBase) {
 		self.base.invalidate();
 	}
 }
 
 
-impl development::Drawable for ScintillaCocoa {
-	fn draw(&mut self, base: &mut development::MemberControlBase, coords: Option<(i32, i32)>) {
+impl Drawable for ScintillaCocoa {
+	fn draw(&mut self, member: &mut MemberBase, _control: &mut ControlBase, coords: Option<(i32, i32)>) {
     	if coords.is_some() {
     		self.base.coords = coords;
     	}
     	if let Some((x, y)) = self.base.coords {
-    		use plygui_api::development::ControlInner;
-    		
     		let (_,ph) = self.parent().unwrap().size();
     		unsafe {
 	            let mut frame: NSRect = self.base.frame();
@@ -136,7 +139,7 @@ impl development::Drawable for ScintillaCocoa {
 	            frame.origin = NSPoint::new(x as f64, (ph as i32 - y - self.base.measured_size.1 as i32) as f64);
 	            msg_send![self.base.control, setFrame: frame];
 	        }
-    		if let Some(ref mut cb) = base.member.handler_resize {
+    		if let Some(ref mut cb) = member.handler_resize {
 	            unsafe {
 	                let mut ll2 = common::member_from_cocoa_id_mut::<Scintilla>(self.base.control).unwrap();
 	                (cb.as_mut())(ll2, self.base.measured_size.0, self.base.measured_size.1);
@@ -144,22 +147,19 @@ impl development::Drawable for ScintillaCocoa {
 	        }
     	}
     }
-    fn measure(&mut self, base: &mut development::MemberControlBase, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
+    fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
     	let old_size = self.base.measured_size;
-        let (lp, tp, rp, bp) = base.control.layout.padding.into();
-        let (lm, tm, rm, bm) = base.control.layout.margin.into();
-
-        self.base.measured_size = match base.member.visibility {
+        self.base.measured_size = match member.visibility {
             types::Visibility::Gone => (0, 0),
             _ => {
-                let w = match base.control.layout.width {
+                let w = match control.layout.width {
                     layout::Size::MatchParent => parent_width,
                     layout::Size::Exact(w) => w,
                     layout::Size::WrapContent => {
                         42 as u16 // TODO min_width
                     } 
                 };
-                let h = match base.control.layout.height {
+                let h = match control.layout.height {
                     layout::Size::MatchParent => parent_height,
                     layout::Size::Exact(h) => h,
                     layout::Size::WrapContent => {
@@ -167,8 +167,8 @@ impl development::Drawable for ScintillaCocoa {
                     } 
                 };
                 (
-                    max(0, w as i32 + lm + rm + lp + rp) as u16,
-                    max(0, h as i32 + tm + bm + tp + bp) as u16,
+                    w,
+                    h,
                 )
             },
         };
@@ -178,19 +178,19 @@ impl development::Drawable for ScintillaCocoa {
             self.base.measured_size != old_size,
         )
     }
-    fn invalidate(&mut self, _: &mut development::MemberControlBase) {
+    fn invalidate(&mut self, _: &mut MemberBase, _: &mut ControlBase) {
     	self.base.invalidate();
     }
 }
 
-impl development::MemberInner for ScintillaCocoa {
+impl MemberInner for ScintillaCocoa {
 	type Id = common::CocoaId;
 	
     fn size(&self) -> (u16, u16) {
     	self.base.measured_size
     }
     
-    fn on_set_visibility(&mut self, base: &mut development::MemberBase) {
+    fn on_set_visibility(&mut self, base: &mut MemberBase) {
     	self.base.on_set_visibility(base);
     }
     
@@ -198,5 +198,11 @@ impl development::MemberInner for ScintillaCocoa {
     	self.base.control.into()
     }
 }
-
+extern "C" fn set_frame_size(this: &mut Object, _: Sel, param: NSSize) {
+    unsafe {
+        let sp = common::member_from_cocoa_id_mut::<Scintilla>(this).unwrap();
+        let () = msg_send![super(sp.as_inner_mut().as_inner_mut().base.control, Class::get(BASE_CLASS).unwrap()), setFrameSize: param];
+        sp.call_on_resize(param.width as u16, param.height as u16);
+    }
+}
 impl_all_defaults!(Scintilla);

@@ -19,5 +19,3 @@ pub use self::lib_qt::Scintilla;
 pub(crate) mod lib_gtk;
 #[cfg(feature = "gtk3")]
 pub use self::lib_gtk::Scintilla;
-
-const THE_ULTIMATE_ANSWER_TO_EVERYTHING: u16 = 42;
