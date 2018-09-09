@@ -1,42 +1,25 @@
-use super::*;
+use super::development as scintilla_dev;
 
-use plygui_api::development::*;
-use plygui_api::{controls, layout, types};
+use plygui_gtk::common::*;
 
-use plygui_gtk::common;
+use scintilla_sys::{self, Ptr, SCNotification, Scintilla as GtkScintilla, ScintillaExt};
 
-use scintilla_sys::{Ptr, SCNotification, Scintilla as GtkScintilla, ScintillaExt};
-
-use gtk::{Cast, Widget, WidgetExt};
-
-use std::cmp::max;
-use std::os::raw::{c_int, c_void};
-use std::{mem, str};
+use std::str;
 
 pub type Scintilla = Member<Control<ScintillaGtk>>;
 
 #[repr(C)]
 pub struct ScintillaGtk {
-    base: common::GtkControlBase<Scintilla>,
-
-    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int)>,
-    self_ptr: Option<*mut c_void>,
+    base: GtkControlBase<Scintilla>,
 }
 
 impl super::development::ScintillaInner for ScintillaGtk {
     fn new() -> Box<super::Scintilla> {
         let sc = GtkScintilla::new();
-        let (fn_ptr, self_ptr) = {
-            let self_ptr = sc.send_message(scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0);
-            let fn_ptr = sc.send_message(scintilla_sys::SCI_GETDIRECTFUNCTION, 0, 0);
-            (fn_ptr, self_ptr)
-        };
         let mut sc = Box::new(Member::with_inner(
             Control::with_inner(
                 ScintillaGtk {
-                    base: common::GtkControlBase::with_gtk_widget(sc.upcast::<Widget>()),
-                    fn_ptr: Some(unsafe { mem::transmute(fn_ptr) }),
-                    self_ptr: Some(self_ptr as *mut c_void),
+                    base: GtkControlBase::with_gtk_widget(sc.upcast::<Widget>()),
                 },
                 (),
             ),
@@ -44,43 +27,59 @@ impl super::development::ScintillaInner for ScintillaGtk {
         ));
 
         {
-            let ptr = sc.as_ref() as *const _ as *mut std::os::raw::c_void;
+            let ptr = sc.as_ref() as *const _ as *mut c_void;
             sc.as_inner_mut().as_inner_mut().base.set_pointer(ptr);
         }
         {
-            let sc: gtk::Widget = sc.as_inner_mut().as_inner_mut().base.widget.clone().into();
+            let sc: Widget = sc.as_inner_mut().as_inner_mut().base.widget.clone().into();
             let sc = sc.downcast::<GtkScintilla>().unwrap();
             sc.connect_notify(on_notify);
         }
         sc.as_inner_mut().as_inner_mut().base.widget.connect_size_allocate(on_size_allocate);
         sc
     }
+    fn on_ui_update(&mut self, cb: Option<scintilla_dev::Custom>) {}
     fn set_margin_width(&mut self, index: usize, width: isize) {
-        if let Some(fn_ptr) = self.fn_ptr {
-            (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
-        }
-
-        /*unsafe { 
-        	let qo: *mut ScintillaEditBase = self.base.widget.static_cast_mut();
-			let _ = qo.as_mut().unwrap().send(scintilla_sys::SCI_SETMARGINWIDTHN as u32, index as c_uint, width as c_int);
-        }	*/
+        let widget: Widget = self.base.widget.clone().into();
+        widget.downcast::<GtkScintilla>().unwrap().send_message(scintilla_sys::SCI_SETMARGINWIDTHN as u32, index as u64, width as i64);
+    }
+    fn set_readonly(&mut self, readonly: bool) {
+        let widget: Widget = self.base.widget.clone().into();
+        widget.downcast::<GtkScintilla>().unwrap().send_message(scintilla_sys::SCI_SETREADONLY as u32, if readonly { 1 } else { 0 }, 0);
+    }
+    fn is_readonly(&self) -> bool {
+        let widget: Widget = self.base.widget.clone().into();
+        widget.downcast::<GtkScintilla>().unwrap().send_message(scintilla_sys::SCI_GETREADONLY as u32, 0, 0) == 1
+    }
+    fn set_codepage(&mut self, cp: super::Codepage) {
+        let widget: Widget = self.base.widget.clone().into();
+        widget.downcast::<GtkScintilla>().unwrap().send_message(scintilla_sys::SCI_SETCODEPAGE as u32, cp as isize as u64, 0);
+    }
+    fn codepage(&self) -> super::Codepage {
+        let widget: Widget = self.base.widget.clone().into();
+        (widget.downcast::<GtkScintilla>().unwrap().send_message(scintilla_sys::SCI_GETCODEPAGE as u32, 0, 0) as isize).into()
+    }
+    fn append_text(&mut self, text: &str) {
+        self.set_codepage(super::Codepage::Utf8);
+        let len = text.len();
+        let tptr = text.as_bytes().as_ptr();
+        let widget: Widget = self.base.widget.clone().into();
+        widget.downcast::<GtkScintilla>().unwrap().send_message(scintilla_sys::SCI_APPENDTEXT as u32, len as u64, tptr as i64);
     }
 }
 
 impl HasLayoutInner for ScintillaGtk {
-    fn on_layout_changed(&mut self, base: &mut MemberBase) {
+    fn on_layout_changed(&mut self, _: &mut MemberBase) {
         self.base.invalidate();
     }
 }
 
 impl ControlInner for ScintillaGtk {
-    fn on_added_to_container(&mut self, base: &mut MemberControlBase, parent: &controls::Container, x: i32, y: i32) {
-        let (pw, ph) = parent.draw_area_size();
-        self.measure(base, pw, ph);
-        self.base.dirty = false;
-        self.draw(base, Some((x, y)));
+    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
+        self.measure(member, control, pw, ph);
+        self.draw(member, control, Some((x, y)));
     }
-    fn on_removed_from_container(&mut self, _: &mut MemberControlBase, _: &controls::Container) {}
+    fn on_removed_from_container(&mut self, _: &mut MemberBase, _: &mut ControlBase, _: &controls::Container) {}
 
     fn parent(&self) -> Option<&controls::Member> {
         self.base.parent().map(|m| m.as_member())
@@ -97,7 +96,7 @@ impl ControlInner for ScintillaGtk {
 }
 
 impl MemberInner for ScintillaGtk {
-    type Id = common::GtkWidget;
+    type Id = GtkWidget;
 
     fn size(&self) -> (u16, u16) {
         self.base.measured_size
@@ -113,44 +112,44 @@ impl MemberInner for ScintillaGtk {
 }
 
 impl Drawable for ScintillaGtk {
-    fn draw(&mut self, base: &mut MemberControlBase, coords: Option<(i32, i32)>) {
-        self.base.draw(base, coords);
+    fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase, coords: Option<(i32, i32)>) {
+        self.base.draw(member, control, coords);
     }
-    fn measure(&mut self, base: &mut MemberControlBase, w: u16, h: u16) -> (u16, u16, bool) {
+    fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, w: u16, h: u16) -> (u16, u16, bool) {
         let old_size = self.base.measured_size;
-        let (lp, tp, rp, bp) = base.control.layout.padding.into();
-        let (lm, tm, rm, bm) = base.control.layout.margin.into();
+        let (lm, tm, rm, bm) = self.base.margins().into();
 
-        self.base.measured_size = match base.member.visibility {
+        self.base.measured_size = match member.visibility {
             types::Visibility::Gone => (0, 0),
             _ => {
-                let w = match base.control.layout.width {
+                let w = match control.layout.width {
                     layout::Size::MatchParent => w,
                     layout::Size::Exact(w) => w,
                     layout::Size::WrapContent => {
                         42 as u16 // TODO min_width
                     }
                 };
-                let h = match base.control.layout.height {
+                let h = match control.layout.height {
                     layout::Size::MatchParent => h,
                     layout::Size::Exact(h) => h,
                     layout::Size::WrapContent => {
                         42 as u16 // TODO min_height
                     }
                 };
-                (max(0, w as i32 + lm + rm + lp + rp) as u16, max(0, h as i32 + tm + bm + tp + bp) as u16)
+                (cmp::max(0, w as i32 + lm + rm) as u16, cmp::max(0, h as i32 + tm + bm) as u16)
             }
         };
-        self.base.dirty = self.base.measured_size != old_size;
-        (self.base.measured_size.0, self.base.measured_size.1, self.base.dirty)
+        (self.base.measured_size.0, self.base.measured_size.1, self.base.measured_size != old_size)
     }
-    fn invalidate(&mut self, _: &mut MemberControlBase) {
+    fn invalidate(&mut self, _: &mut MemberBase, _: &mut ControlBase) {
         self.base.invalidate()
     }
 }
 
 #[allow(dead_code)]
 pub(crate) fn spawn() -> Box<controls::Control> {
+    use NewScintilla;
+
     Scintilla::new().into_control()
 }
 
@@ -158,25 +157,17 @@ impl_all_defaults!(Scintilla);
 
 fn on_size_allocate(this: &::gtk::Widget, _allo: &::gtk::Rectangle) {
     let mut ll = this.clone().upcast::<Widget>();
-    let ll = common::cast_gtk_widget_to_member_mut::<Scintilla>(&mut ll).unwrap();
+    let ll = cast_gtk_widget_to_member_mut::<Scintilla>(&mut ll).unwrap();
 
-    //if ll.as_inner().as_inner().base.dirty {
-    ll.as_inner_mut().as_inner_mut().base.dirty = false;
     let measured_size = ll.as_inner().as_inner().base.measured_size;
     if let Some(ref mut cb) = ll.base_mut().handler_resize {
         let mut w2 = this.clone().upcast::<Widget>();
-        let mut w2 = common::cast_gtk_widget_to_member_mut::<Scintilla>(&mut w2).unwrap();
+        let mut w2 = cast_gtk_widget_to_member_mut::<Scintilla>(&mut w2).unwrap();
         (cb.as_mut())(w2, measured_size.0 as u16, measured_size.1 as u16);
     }
-    //}
 }
 
 fn on_notify(this: &GtkScintilla, _msg: i32, notification: Ptr, _data: Ptr) {
-    let mut b = this.clone().upcast::<Widget>();
-    let notification = unsafe { &*(notification as *const SCNotification) };
-    let b = common::cast_gtk_widget_to_member_mut::<Scintilla>(&mut b).unwrap();
-
-    println!("AAA {:?}/{:?} = {}", notification.wParam, notification.lParam, unsafe {
-        str::from_utf8_unchecked(::std::slice::from_raw_parts(notification.text as *const u8, notification.length as usize))
-    });
+    //let mut b = this.clone().upcast::<Widget>();
+    //let notification = unsafe { &*(notification as *const SCNotification) };
 }

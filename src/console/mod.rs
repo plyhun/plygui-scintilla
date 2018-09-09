@@ -18,6 +18,15 @@ type ScintillaNative = super::scintilla::lib_qt::ScintillaQt;
 #[cfg(feature = "gtk3")]
 type ScintillaNative = super::scintilla::lib_gtk::ScintillaGtk;
 
+#[cfg(all(target_os = "windows", feature = "win32"))]
+type Id = super::plygui_win32::common::Hwnd;
+#[cfg(all(target_os = "macos", feature = "cocoa_"))]
+type Id = super::plygui_cocoa::common::CocoaId;
+#[cfg(feature = "qt5")]
+type Id = super::plygui_qt::common::QtId;
+#[cfg(feature = "gtk3")]
+type Id = super::plygui_gtk::common::GtkWidget;
+
 use std::sync::mpsc;
 use std::{io, process, thread};
 //use std::os::windows::ffi::OsStrExt;
@@ -205,7 +214,7 @@ impl HasLayoutInner for ConsoleWin32 {
 }
 
 impl MemberInner for ConsoleWin32 {
-    type Id = Hwnd;
+    type Id = Id;
 
     fn size(&self) -> (u16, u16) {
         self.scintilla.size()

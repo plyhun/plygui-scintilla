@@ -9,7 +9,7 @@ pub trait ScintillaInner: ControlInner {
     fn set_codepage(&mut self, cp: super::Codepage);
     fn codepage(&self) -> super::Codepage;
     fn append_text(&mut self, text: &str);
-    fn on_ui_update(&mut self, Option<Custom>);
+    fn on_ui_update(&mut self, cb: Option<Custom>);
 }
 impl<T: ScintillaInner + Sized + 'static> super::Scintilla for Member<Control<T>> {
     fn set_margin_width(&mut self, index: usize, width: isize) {
@@ -24,12 +24,6 @@ impl<T: ScintillaInner + Sized + 'static> super::Scintilla for Member<Control<T>
     fn append_text(&mut self, text: &str) {
         self.as_inner_mut().as_inner_mut().append_text(text)
     }
-    /*fn set_codepage(&mut self, cp: super::Codepage) {
-        self.as_inner_mut().as_inner_mut().set_codepage(cp)
-    }
-    fn codepage(&self) -> super::Codepage {
-        self.as_inner().as_inner().codepage()
-    }*/
 }
 impl<T: ScintillaInner + Sized> super::NewScintilla for Member<Control<T>> {
     fn new() -> Box<super::Scintilla> {
