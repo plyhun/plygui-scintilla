@@ -192,14 +192,14 @@ impl Drawable for ScintillaWin32 {
                     layout::Size::MatchParent => w,
                     layout::Size::Exact(w) => w,
                     layout::Size::WrapContent => {
-                        super::THE_ULTIMATE_ANSWER_TO_EVERYTHING // TODO min_width
+                        defaults::THE_ULTIMATE_ANSWER_TO_EVERYTHING // TODO min_width
                     }
                 };
                 let h = match control.layout.height {
                     layout::Size::MatchParent => h,
                     layout::Size::Exact(h) => h,
                     layout::Size::WrapContent => {
-                        super::THE_ULTIMATE_ANSWER_TO_EVERYTHING // TODO min_height
+                        defaults::THE_ULTIMATE_ANSWER_TO_EVERYTHING // TODO min_height
                     }
                 };
                 (cmp::max(0, w as i32) as u16, cmp::max(0, h as i32) as u16)
