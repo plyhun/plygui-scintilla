@@ -8,11 +8,11 @@ name = "plygui_scintilla"
 path = "src/lib.rs"
 
 [dependencies]
-plygui-api = {version = "0.0.1", path = "../plygui-api"}
+plygui-api = {version = "0.0.1", path = "../plygui/src/api"}
 scintilla-sys = {version = "*", path = "../scintilla-sys-rs"}
 lazy_static = "~0.2"
 
-plygui-gtk = {version = "0.0.1", path = "../plygui-gtk", optional = true}
+plygui-gtk = {version = "0.0.1", path = "../plygui/src/backend/gtk", optional = true}
 gtk = { version = "^0.4", features = ["v3_18"], optional = true }
 gdk = { version = "^0.8", features = ["v3_18"], optional = true }
 glib = { version = "^0.5", optional = true }
@@ -29,11 +29,11 @@ qt_widgets = {version = "~0.2", optional = true}
 qt_core_custom_events = {version = "*", path = "../qt_core_custom_events", optional = true}
 
 [target.'cfg(target_os = "windows")'.dependencies]
-plygui-win32 = {version = "0.0.1", path = "../plygui-win32", optional = true}
+plygui-win32 = {version = "0.0.1", path = "../plygui/src/backend/win32", optional = true}
 winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "imm", "oleauto", "wincon", "consoleapi", "processenv", "namedpipeapi"], optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-plygui-cocoa = { version = "0.0.1", path = "../plygui-cocoa", optional = true}
+plygui-cocoa = { version = "0.0.1", path = "../plygui/src/backend/cocoa", optional = true}
 objc = {version = "~0.2", optional = true}
 
 [features]
