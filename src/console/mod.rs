@@ -57,6 +57,7 @@ pub struct ConsoleWin32 {
     input: bool,
     cmd: ConsoleThread,
     rx_in: mpsc::Sender<RxCommand>,
+    rx_out: mpsc::Receiver<RxCommand>,
 }
 
 impl scintilla_dev::ConsoleInner for ConsoleWin32 {
@@ -65,27 +66,18 @@ impl scintilla_dev::ConsoleInner for ConsoleWin32 {
         use plygui_api::development::HasInner;
 
         let (rx_in, rx_out) = mpsc::channel();
-        let mut b: Box<Console> = Box::new(Member::with_inner(
+        let b: Box<Console> = Box::new(Member::with_inner(
             Control::with_inner(
                 ConsoleWin32 {
                     scintilla: ScintillaNative::new().into_inner().into_inner(),
                     cmd: ConsoleThread::Idle(NO_CONSOLE_NAME.into()),
                     rx_in: rx_in,
+                    rx_out: rx_out,
                     input: with_command_line,
                 },
                 (),
             ),
             MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
-        ));
-        b.as_inner_mut().as_inner_mut().scintilla.on_ui_update(Some(
-            (move |sc: &mut super::Scintilla| match rx_out.try_recv() {
-                Ok(cmd) => match cmd {
-                    RxCommand::Error => {}
-                    RxCommand::Line(ref line) => sc.append_text(line.as_str()),
-                    RxCommand::Ready(_code) => sc.append_text("Done\n"),
-                },
-                Err(_) => {}
-            }).into(),
         ));
         b
     }
@@ -118,6 +110,36 @@ impl HasLabelInner for ConsoleWin32 {
 impl ControlInner for ConsoleWin32 {
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         self.scintilla.on_added_to_container(member, control, parent, x, y, pw, ph);
+        
+        {
+        	use development::ScintillaInner;
+	                
+        	let my_id = member.as_member().id();
+        	let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_win32::prelude::imp::Window>().unwrap();
+        	
+        	window.as_inner_mut().as_inner_mut().on_frame((move |w: &mut ::plygui_api::controls::Window| {
+        		if let Some(console) = w.find_control_by_id_mut(my_id) {
+        			let console = console.as_any_mut().downcast_mut::<Console>().unwrap();
+		        	match console.as_inner_mut().as_inner_mut().rx_out.try_recv() {
+		        		Ok(cmd) => match cmd {
+		                    RxCommand::Error => { println!("RxErr"); false }
+		                    RxCommand::Line(ref line) => {
+		                    	console.as_inner_mut().as_inner_mut().scintilla.append_text(line.as_str());
+		                    	true
+		                    },
+		                    RxCommand::Ready(_code) => {
+		                    	console.as_inner_mut().as_inner_mut().scintilla.append_text("Done\n");
+		                    	true
+		                    },
+		                },
+		                Err(e) => mpsc::TryRecvError::Empty == e,
+		            }	
+        		} else {
+        			true
+        		}
+        	}).into());
+        }
+        
         let name = match self.cmd {
             ConsoleThread::Idle(ref name) => name.clone(),
             _ => unreachable!(),
@@ -136,8 +158,6 @@ impl ControlInner for ConsoleWin32 {
                                 TxCommand::Exit => break,
                                 TxCommand::Execute(cmd, args) => {
                                     use std::io::BufRead;
-
-                                    println!("{} {:?}", cmd, args);
 
                                     match process::Command::new(cmd).args(args).stdout(process::Stdio::piped()).stderr(process::Stdio::piped()).spawn() {
                                         Ok(mut cmd) => {
@@ -215,7 +235,7 @@ impl HasLayoutInner for ConsoleWin32 {
 
 impl MemberInner for ConsoleWin32 {
     type Id = Id;
-
+    
     fn size(&self) -> (u16, u16) {
         self.scintilla.size()
     }

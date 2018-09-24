@@ -18,7 +18,6 @@ pub type Scintilla = Member<Control<ScintillaWin32>>;
 pub struct ScintillaWin32 {
     base: WindowsControlBase<Scintilla>,
 
-    ui_cb: Option<scintilla_dev::Custom>,
     fn_ptr: Option<extern "C" fn(*mut r_void, c_int, c_int, c_int) -> c_int>,
     self_ptr: Option<*mut r_void>,
 }
@@ -36,7 +35,6 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
             Control::with_inner(
                 ScintillaWin32 {
                     base: WindowsControlBase::new(),
-                    ui_cb: None,
                     fn_ptr: None,
                     self_ptr: None,
                 },
@@ -45,9 +43,6 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
             MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
         ));
         b
-    }
-    fn on_ui_update(&mut self, cb: Option<scintilla_dev::Custom>) {
-        self.ui_cb = cb;
     }
     fn set_margin_width(&mut self, index: usize, width: isize) {
         if let Some(fn_ptr) = self.fn_ptr {
@@ -152,7 +147,7 @@ impl HasLayoutInner for ScintillaWin32 {
 
 impl MemberInner for ScintillaWin32 {
     type Id = Hwnd;
-
+    
     fn size(&self) -> (u16, u16) {
         let rect = unsafe { window_rect(self.base.hwnd) };
         ((rect.right - rect.left) as u16, (rect.bottom - rect.top) as u16)
@@ -233,10 +228,6 @@ unsafe extern "system" fn handler(hwnd: windef::HWND, msg: minwindef::UINT, wpar
             sc.call_on_resize(width, height);
         }
         _ => {}
-    }
-    if let Some(ref mut cb) = sc.as_inner_mut().as_inner_mut().ui_cb {
-        let mut sc2: &mut Scintilla = mem::transmute(param);
-        (cb.as_mut())(sc2);
     }
     commctrl::DefSubclassProc(hwnd, msg, wparam, lparam)
 }

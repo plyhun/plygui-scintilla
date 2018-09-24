@@ -1,4 +1,3 @@
-use plygui_api::callbacks::Callback;
 use plygui_api::development::*;
 
 pub trait ScintillaInner: ControlInner {
@@ -9,7 +8,6 @@ pub trait ScintillaInner: ControlInner {
     fn set_codepage(&mut self, cp: super::Codepage);
     fn codepage(&self) -> super::Codepage;
     fn append_text(&mut self, text: &str);
-    fn on_ui_update(&mut self, cb: Option<Custom>);
 }
 impl<T: ScintillaInner + Sized + 'static> super::Scintilla for Member<Control<T>> {
     fn set_margin_width(&mut self, index: usize, width: isize) {
@@ -52,5 +50,3 @@ impl<T: ConsoleInner + Sized> super::NewConsole for Member<Control<T>> {
         T::new(with_command_line)
     }
 }
-
-callback!(Custom, FnMut(&mut super::Scintilla));
