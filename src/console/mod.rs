@@ -32,7 +32,7 @@ use std::{io, process, thread};
 //use std::os::windows::ffi::OsStrExt;
 //use std::ffi::OsStr;
 
-pub type Console = Member<Control<ConsoleWin32>>;
+pub type Console = Member<Control<ConsoleImpl>>;
 
 const NO_CONSOLE_NAME: &str = "Plygui Unnamed Console";
 
@@ -51,7 +51,7 @@ enum RxCommand {
 }
 
 #[repr(C)]
-pub struct ConsoleWin32 {
+pub struct ConsoleImpl {
     scintilla: ScintillaNative,
 
     input: bool,
@@ -60,7 +60,7 @@ pub struct ConsoleWin32 {
     rx_out: mpsc::Receiver<RxCommand>,
 }
 
-impl scintilla_dev::ConsoleInner for ConsoleWin32 {
+impl scintilla_dev::ConsoleInner for ConsoleImpl {
     fn new(with_command_line: bool) -> Box<Console> {
         use development::ScintillaInner;
         use plygui_api::development::HasInner;
@@ -68,7 +68,7 @@ impl scintilla_dev::ConsoleInner for ConsoleWin32 {
         let (rx_in, rx_out) = mpsc::channel();
         let b: Box<Console> = Box::new(Member::with_inner(
             Control::with_inner(
-                ConsoleWin32 {
+                ConsoleImpl {
                     scintilla: ScintillaNative::new().into_inner().into_inner(),
                     cmd: ConsoleThread::Idle(NO_CONSOLE_NAME.into()),
                     rx_in: rx_in,
@@ -92,7 +92,7 @@ impl scintilla_dev::ConsoleInner for ConsoleWin32 {
     }
 }
 
-impl HasLabelInner for ConsoleWin32 {
+impl HasLabelInner for ConsoleImpl {
     fn label(&self) -> ::std::borrow::Cow<str> {
         match self.cmd {
             ConsoleThread::Idle(ref name) => ::std::borrow::Cow::Borrowed(name),
@@ -107,7 +107,7 @@ impl HasLabelInner for ConsoleWin32 {
     }
 }
 
-impl ControlInner for ConsoleWin32 {
+impl ControlInner for ConsoleImpl {
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         self.scintilla.on_added_to_container(member, control, parent, x, y, pw, ph);
         
@@ -117,7 +117,7 @@ impl ControlInner for ConsoleWin32 {
         	let my_id = member.as_member().id();
         	let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_win32::prelude::imp::Window>().unwrap();
         	
-        	window.as_inner_mut().as_inner_mut().on_frame((move |w: &mut ::plygui_api::controls::Window| {
+        	window.as_inner_mut().as_inner_mut().as_inner_mut().on_frame((move |w: &mut ::plygui_api::controls::Window| {
         		if let Some(console) = w.find_control_by_id_mut(my_id) {
         			let console = console.as_any_mut().downcast_mut::<Console>().unwrap();
 		        	match console.as_inner_mut().as_inner_mut().rx_out.try_recv() {
@@ -227,13 +227,13 @@ impl ControlInner for ConsoleWin32 {
     }
 }
 
-impl HasLayoutInner for ConsoleWin32 {
+impl HasLayoutInner for ConsoleImpl {
     fn on_layout_changed(&mut self, base: &mut MemberBase) {
         self.scintilla.on_layout_changed(base)
     }
 }
 
-impl MemberInner for ConsoleWin32 {
+impl MemberInner for ConsoleImpl {
     type Id = Id;
     
     fn size(&self) -> (u16, u16) {
@@ -248,7 +248,7 @@ impl MemberInner for ConsoleWin32 {
     }
 }
 
-impl Drawable for ConsoleWin32 {
+impl Drawable for ConsoleImpl {
     fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase, coords: Option<(i32, i32)>) {
         self.scintilla.draw(member, control, coords);
     }
