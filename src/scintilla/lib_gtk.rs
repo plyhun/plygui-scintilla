@@ -1,8 +1,8 @@
-use super::development as scintilla_dev;
+//use super::development as scintilla_dev;
 
 use plygui_gtk::common::*;
 
-use scintilla_sys::{self, Ptr, SCNotification, Scintilla as GtkScintilla, ScintillaExt};
+use scintilla_sys::{self, Ptr, /*SCNotification,*/ Scintilla as GtkScintilla, ScintillaExt};
 
 use std::str;
 
@@ -38,7 +38,6 @@ impl super::development::ScintillaInner for ScintillaGtk {
         sc.as_inner_mut().as_inner_mut().base.widget.connect_size_allocate(on_size_allocate);
         sc
     }
-    fn on_ui_update(&mut self, cb: Option<scintilla_dev::Custom>) {}
     fn set_margin_width(&mut self, index: usize, width: isize) {
         let widget: Widget = self.base.widget.clone().into();
         widget.downcast::<GtkScintilla>().unwrap().send_message(scintilla_sys::SCI_SETMARGINWIDTHN as u32, index as u64, width as i64);
@@ -75,7 +74,7 @@ impl HasLayoutInner for ScintillaGtk {
 }
 
 impl ControlInner for ScintillaGtk {
-    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
+    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, _parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         self.measure(member, control, pw, ph);
         self.draw(member, control, Some((x, y)));
     }
@@ -160,11 +159,7 @@ fn on_size_allocate(this: &::gtk::Widget, _allo: &::gtk::Rectangle) {
     let ll = cast_gtk_widget_to_member_mut::<Scintilla>(&mut ll).unwrap();
 
     let measured_size = ll.as_inner().as_inner().base.measured_size;
-    if let Some(ref mut cb) = ll.base_mut().handler_resize {
-        let mut w2 = this.clone().upcast::<Widget>();
-        let mut w2 = cast_gtk_widget_to_member_mut::<Scintilla>(&mut w2).unwrap();
-        (cb.as_mut())(w2, measured_size.0 as u16, measured_size.1 as u16);
-    }
+    ll.call_on_resize(measured_size.0 as u16, measured_size.1 as u16);
 }
 
 fn on_notify(this: &GtkScintilla, _msg: i32, notification: Ptr, _data: Ptr) {
