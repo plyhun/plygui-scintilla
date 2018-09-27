@@ -11,7 +11,6 @@ pub struct ScintillaQt {
     base: QtControlBase<Scintilla, ScintillaEditBase>,
 
     h_command: (bool, SlotSCNotificationPtr<'static>),
-    ui_cb: Option<scintilla_dev::Custom>,
     fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int)>,
     self_ptr: Option<*mut c_void>,
 }
@@ -31,7 +30,6 @@ impl scintilla_dev::ScintillaInner for ScintillaQt {
             Control::with_inner(
                 ScintillaQt {
                     base: QtControlBase::with_params(sc, event_handler),
-                    ui_cb: None,
                     h_command: (false, SlotSCNotificationPtr::new(move |_| {})),
                     fn_ptr: Some(unsafe { mem::transmute(fn_ptr) }),
                     self_ptr: Some(self_ptr as *mut c_void),
@@ -41,7 +39,7 @@ impl scintilla_dev::ScintillaInner for ScintillaQt {
             MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
         ));
         unsafe {
-            use qt_core::cpp_utils::StaticCast;
+            use plygui_qt::qt_core::cpp_utils::StaticCast;
             let ptr = sc.as_ref() as *const _ as u64;
             let qo: &mut QObject = sc.as_inner_mut().as_inner_mut().base.widget.static_cast_mut();
             qo.set_property(PROPERTY.as_ptr() as *const i8, &QVariant::new0(ptr));
@@ -66,9 +64,6 @@ impl scintilla_dev::ScintillaInner for ScintillaQt {
         let len = text.len();
         let tptr = text.as_bytes().as_ptr();
         unsafe { self.base.widget.as_mut().send(SCI_APPENDTEXT, len as c_uint, tptr as c_int); }
-    }
-    fn on_ui_update(&mut self, cb: Option<scintilla_dev::Custom>) {
-        self.ui_cb = cb;
     }
 }
 
@@ -165,10 +160,6 @@ fn event_handler(object: &mut QObject, event: &QEvent) -> bool {
                     }
                 }
                 _ => {}
-            }
-            if let Some(ref mut cb) = sc.as_inner_mut().as_inner_mut().ui_cb {
-                let mut sc2: &mut Scintilla = mem::transmute(ptr);
-                (cb.as_mut())(sc2);
             }
         }
         false

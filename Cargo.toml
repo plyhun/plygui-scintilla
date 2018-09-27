@@ -23,10 +23,6 @@ libc = { version = "^0.2", optional = true }
 pango = { version = "^0.4", optional = true }
 
 plygui-qt = {version = "0.0.1", path = "../plygui-qt", optional = true}
-qt_core = {version = "~0.2", optional = true}
-qt_gui = {version = "~0.2", optional = true}
-qt_widgets = {version = "~0.2", optional = true}
-qt_core_custom_events = {version = "*", path = "../qt_core_custom_events", optional = true}
 
 [target.'cfg(target_os = "windows")'.dependencies]
 plygui-win32 = {version = "0.0.1", path = "../plygui-win32", optional = true}
@@ -39,7 +35,7 @@ objc = {version = "~0.2", optional = true}
 [features]
 win32 = ["scintilla-sys/win32","winapi","plygui-win32"]
 gtk3 = ["scintilla-sys/gtk3","plygui-gtk","gtk","gdk","glib","pango"]
-qt5 = ["scintilla-sys/qt5","plygui-qt","qt_core","qt_gui","qt_widgets","qt_core_custom_events"]
+qt5 = ["scintilla-sys/qt5","plygui-qt"]
 cocoa_ = ["scintilla-sys/cocoa","objc","plygui-cocoa"]
 #https://github.com/rust-lang/cargo/issues/1197
 #native = ["win32", "cocoa_", "gtk3"]

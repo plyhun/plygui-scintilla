@@ -18,12 +18,6 @@ extern crate objc;
 
 #[cfg(feature = "qt5")]
 extern crate plygui_qt;
-#[cfg(feature = "qt5")]
-extern crate qt_core;
-#[cfg(feature = "qt5")]
-extern crate qt_gui;
-#[cfg(feature = "qt5")]
-extern crate qt_widgets;
 
 #[cfg(feature = "gtk3")]
 extern crate plygui_gtk;

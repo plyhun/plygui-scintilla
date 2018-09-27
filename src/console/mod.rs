@@ -119,6 +119,8 @@ impl ControlInner for ConsoleImpl {
             let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_win32::prelude::imp::Window>().unwrap();
         	#[cfg(feature = "gtk3")]
             let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_gtk::prelude::imp::Window>().unwrap();
+        	#[cfg(feature = "qt5")]
+            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_qt::prelude::imp::Window>().unwrap();
         	
         	window.as_inner_mut().as_inner_mut().as_inner_mut().on_frame((move |w: &mut ::plygui_api::controls::Window| {
         		if let Some(console) = w.find_control_by_id_mut(my_id) {
