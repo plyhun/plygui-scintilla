@@ -1,79 +1,39 @@
-use super::development as scintilla_dev;
+use super::common::*;
 
 use plygui_qt::common::*;
 use scintilla_sys::*;
 use std::os::raw::{c_int, c_uint};
 
-pub type Scintilla = Member<Control<ScintillaQt>>;
-
 #[repr(C)]
-pub struct ScintillaQt {
-    base: QtControlBase<Scintilla, ScintillaEditBase>,
+pub struct ConsoleQt {
+    base: QtControlBase<Console, ScintillaEditBase>,
 
     h_command: (bool, SlotSCNotificationPtr<'static>),
-    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int)>,
-    self_ptr: Option<*mut c_void>,
 }
 
-impl scintilla_dev::ScintillaInner for ScintillaQt {
-    fn set_margin_width(&mut self, index: usize, width: isize) {
-        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETMARGINWIDTHN as u32, index as c_uint, width as c_int); }
-    }
-    fn new() -> Box<super::Scintilla> {
-        let mut sc = ScintillaEditBase::new();
-        let (fn_ptr, self_ptr) = unsafe {
-            let self_ptr = sc.as_mut().send(SCI_GETDIRECTPOINTER, 0, 0);
-            let fn_ptr = sc.as_mut().send(SCI_GETDIRECTFUNCTION, 0, 0);
-            (fn_ptr, self_ptr)
+impl ConsoleQt {
+    pub fn new() -> Self {
+        let sc = ConsoleQt {
+            base: QtControlBase::with_params(ScintillaEditBase::new(), event_handler),
+            h_command: (false, SlotSCNotificationPtr::new(move |_| {})),
         };
-        let mut sc = Box::new(Member::with_inner(
-            Control::with_inner(
-                ScintillaQt {
-                    base: QtControlBase::with_params(sc, event_handler),
-                    h_command: (false, SlotSCNotificationPtr::new(move |_| {})),
-                    fn_ptr: Some(unsafe { mem::transmute(fn_ptr) }),
-                    self_ptr: Some(self_ptr as *mut c_void),
-                },
-                (),
-            ),
-            MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
-        ));
-        unsafe {
-            use plygui_qt::qt_core::cpp_utils::StaticCast;
-            let ptr = sc.as_ref() as *const _ as u64;
-            let qo: &mut QObject = sc.as_inner_mut().as_inner_mut().base.widget.static_cast_mut();
-            qo.set_property(PROPERTY.as_ptr() as *const i8, &QVariant::new0(ptr));
-        }
-        sc.as_inner().as_inner().base.widget.signals().notify().connect(&sc.as_inner().as_inner().h_command.1);
+        sc.base.widget.signals().notify().connect(&sc.h_command.1);
         sc
     }
-    fn set_readonly(&mut self, readonly: bool) {
-        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETREADONLY as u32, if readonly { 1 } else { 0 }, 0); }
-    }
-    fn is_readonly(&self) -> bool {
-        unsafe { self.base.widget.as_ref().send(SCI_GETREADONLY, 0, 0) as usize == 1 }
-    }
-    fn set_codepage(&mut self, cp: super::Codepage) {
-        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETCODEPAGE, cp as u32, 0); }
-    }
-    fn codepage(&self) -> super::Codepage {
-        unsafe { (self.base.widget.as_ref().send(SCI_GETCODEPAGE, 0, 0) as isize).into() }
-    }
-    fn append_text(&mut self, text: &str) {
-        self.set_codepage(super::Codepage::Utf8);
+    pub fn append_text(&mut self, text: &str) {
         let len = text.len();
         let tptr = text.as_bytes().as_ptr();
         unsafe { self.base.widget.as_mut().send(SCI_APPENDTEXT, len as c_uint, tptr as c_int); }
     }
 }
 
-impl HasLayoutInner for ScintillaQt {
+impl HasLayoutInner for ConsoleQt {
     fn on_layout_changed(&mut self, _base: &mut MemberBase) {
         self.base.invalidate();
     }
 }
 
-impl ControlInner for ScintillaQt {
+impl ControlInner for ConsoleQt {
     fn parent(&self) -> Option<&controls::Member> {
         self.base.parent()
     }
@@ -87,6 +47,13 @@ impl ControlInner for ScintillaQt {
         self.base.root_mut()
     }
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, _parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
+        unsafe {
+            use plygui_qt::qt_core::cpp_utils::StaticCast;
+            
+            let ptr = member as *mut _ as u64;
+            let qo: &mut QObject = self.base.widget.static_cast_mut();
+            qo.set_property(PROPERTY.as_ptr() as *const i8, &QVariant::new0(ptr));
+        }
         self.measure(member, control, pw, ph);
         self.base.dirty = false;
         self.draw(member, control, Some((x, y)));
@@ -94,7 +61,7 @@ impl ControlInner for ScintillaQt {
     fn on_removed_from_container(&mut self, _member: &mut MemberBase, _control: &mut ControlBase, _: &controls::Container) {}
 }
 
-impl MemberInner for ScintillaQt {
+impl MemberInner for ConsoleQt {
     type Id = QtId;
 
     fn on_set_visibility(&mut self, base: &mut MemberBase) {
@@ -109,7 +76,7 @@ impl MemberInner for ScintillaQt {
     }
 }
 
-impl Drawable for ScintillaQt {
+impl Drawable for ConsoleQt {
     fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase, coords: Option<(i32, i32)>) {
         self.base.draw(member, control, coords);
     }
@@ -139,25 +106,15 @@ impl Drawable for ScintillaQt {
     }
 }
 
-#[allow(dead_code)]
-pub(crate) fn spawn() -> Box<controls::Control> {
-    use super::NewScintilla;
-
-    Scintilla::new().into_control()
-}
-
 fn event_handler(object: &mut QObject, event: &QEvent) -> bool {
     unsafe {
         let ptr = object.property(PROPERTY.as_ptr() as *const i8).to_u_long_long();
         if ptr != 0 {
-            let sc: &mut Scintilla = mem::transmute(ptr);
+            let sc: &mut Console = mem::transmute(ptr);
             match event.type_() {
                 QEventType::Resize => {
-                    if sc.as_inner().as_inner().base.dirty {
-                        sc.as_inner_mut().as_inner_mut().base.dirty = false;
-                        let (width, height) = sc.as_inner().as_inner().size();
-                        sc.call_on_resize(width, height);
-                    }
+                    let (width, height) = sc.as_inner().as_inner().size();
+                    sc.call_on_resize(width, height);
                 }
                 _ => {}
             }
@@ -165,4 +122,4 @@ fn event_handler(object: &mut QObject, event: &QEvent) -> bool {
         false
     }
 }
-impl_all_defaults!(Scintilla);
+impl_all_defaults!(Console);
