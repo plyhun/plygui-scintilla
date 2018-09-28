@@ -154,7 +154,7 @@ pub(crate) fn spawn() -> Box<controls::Control> {
 
 impl_all_defaults!(Scintilla);
 
-fn on_size_allocate(this: &::gtk::Widget, _allo: &::gtk::Rectangle) {
+fn on_size_allocate(this: &::plygui_gtk::gtk::Widget, _allo: &::plygui_gtk::gtk::Rectangle) {
     let mut ll = this.clone().upcast::<Widget>();
     let ll = cast_gtk_widget_to_member_mut::<Scintilla>(&mut ll).unwrap();
 
@@ -162,7 +162,7 @@ fn on_size_allocate(this: &::gtk::Widget, _allo: &::gtk::Rectangle) {
     ll.call_on_resize(measured_size.0 as u16, measured_size.1 as u16);
 }
 
-fn on_notify(this: &GtkScintilla, _msg: i32, notification: Ptr, _data: Ptr) {
+fn on_notify(_this: &GtkScintilla, _msg: i32, _notification: Ptr, _data: Ptr) {
     //let mut b = this.clone().upcast::<Widget>();
     //let notification = unsafe { &*(notification as *const SCNotification) };
 }

@@ -1,13 +1,13 @@
 use super::*;
 
-#[cfg(all(target_os = "macos", feature = "cocoa_"))]
-use plygui_cocoa::common::*;
-#[cfg(feature = "gtk3")]
-use plygui_gtk::common::*;
-#[cfg(feature = "qt5")]
-use plygui_qt::common::*;
 #[cfg(all(target_os = "windows", feature = "win32"))]
 use plygui_win32::common::*;
+#[cfg(all(target_os = "macos", feature = "cocoa_"))]
+use plygui_cocoa::common::*;
+#[cfg(feature = "qt5")]
+use plygui_qt::common::*;
+#[cfg(feature = "gtk3")]
+use plygui_gtk::common::*;
 
 #[cfg(all(target_os = "windows", feature = "win32"))]
 type ConsoleNative = super::lib_win32::ConsoleWin32;
@@ -59,8 +59,6 @@ pub struct ConsoleImpl {
 
 impl scintilla_dev::ConsoleInner for ConsoleImpl {
     fn new(with_command_line: bool) -> Box<Console> {
-        use plygui_api::development::HasInner;
-
         let (rx_in, rx_out) = mpsc::channel();
         let b: Box<Console> = Box::new(Member::with_inner(
             Control::with_inner(
@@ -117,7 +115,7 @@ impl ControlInner for ConsoleImpl {
             let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_qt::prelude::imp::Window>().unwrap();
         	
         	window.as_inner_mut().as_inner_mut().as_inner_mut().on_frame((move |w: &mut ::plygui_api::controls::Window| {
-        		if let Some(console) = w.find_control_by_id_mut(my_id) {
+        	    if let Some(console) = w.find_control_by_id_mut(my_id) {
         			let console = console.as_any_mut().downcast_mut::<Console>().unwrap();
 		        	match console.as_inner_mut().as_inner_mut().rx_out.try_recv() {
 		        		Ok(cmd) => match cmd {
@@ -157,7 +155,7 @@ impl ControlInner for ConsoleImpl {
                                 TxCommand::Exit => break,
                                 TxCommand::Execute(cmd, args) => {
                                     use std::io::BufRead;
-
+                                    
                                     match process::Command::new(cmd).args(args).stdout(process::Stdio::piped()).stderr(process::Stdio::piped()).spawn() {
                                         Ok(mut cmd) => {
                                             let out = io::BufReader::new(cmd.stdout.take().unwrap());

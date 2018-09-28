@@ -1,7 +1,8 @@
 use plygui_api::development::*;
 
+#[cfg(all(target_os = "windows", feature = "win32"))]
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT};
-
+#[cfg(all(target_os = "windows", feature = "win32"))]
 pub(crate) static GLOBAL_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
 
 pub trait ScintillaInner: ControlInner {

@@ -21,14 +21,6 @@ extern crate plygui_qt;
 
 #[cfg(feature = "gtk3")]
 extern crate plygui_gtk;
-#[cfg(feature = "gtk3")]
-extern crate gdk;
-#[cfg(feature = "gtk3")]
-extern crate glib;
-#[cfg(feature = "gtk3")]
-extern crate gtk;
-#[cfg(feature = "gtk3")]
-extern crate pango;
 
 mod console;
 mod development;
