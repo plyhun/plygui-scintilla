@@ -4,9 +4,7 @@ use plygui_win32::common::*;
 use scintilla_sys::{Scintilla_RegisterClasses, Scintilla_ReleaseResources};
 
 use std::os::raw::{c_int, c_void as r_void};
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-
-static GLOBAL_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
+use std::sync::atomic::Ordering;
 
 lazy_static! {
     pub static ref WINDOW_CLASS: Vec<u16> = OsStr::new("Scintilla").encode_wide().chain(Some(0).into_iter()).collect::<Vec<_>>();
@@ -24,7 +22,7 @@ pub struct ScintillaWin32 {
 
 impl scintilla_dev::ScintillaInner for ScintillaWin32 {
     fn new() -> Box<Scintilla> {
-        if GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
+        if scintilla_dev::GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
             unsafe {
                 if Scintilla_RegisterClasses(hinstance() as *mut r_void) == 0 {
                     panic!("Cannot register Scintilla Win32 class");
@@ -128,7 +126,7 @@ impl ControlInner for ScintillaWin32 {
 
 impl Drop for ScintillaWin32 {
     fn drop(&mut self) {
-        if GLOBAL_COUNT.fetch_sub(1, Ordering::SeqCst) < 1 {
+        if scintilla_dev::GLOBAL_COUNT.fetch_sub(1, Ordering::SeqCst) < 1 {
             unsafe {
                 Scintilla_ReleaseResources();
             }

@@ -1,5 +1,9 @@
 use plygui_api::development::*;
 
+use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT};
+
+pub(crate) static GLOBAL_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
+
 pub trait ScintillaInner: ControlInner {
     fn new() -> Box<Member<Control<Self>>>;
     fn set_margin_width(&mut self, index: usize, width: isize);
