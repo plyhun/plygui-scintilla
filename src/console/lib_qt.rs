@@ -2,12 +2,10 @@ use super::common::*;
 
 use plygui_qt::common::*;
 use scintilla_sys::*;
-use std::os::raw::{c_int, c_uint};
 
 #[repr(C)]
 pub struct ConsoleQt {
     base: QtControlBase<Console, ScintillaEditBase>,
-
     h_command: (bool, SlotSCNotificationPtr<'static>),
 }
 
@@ -23,7 +21,7 @@ impl ConsoleQt {
     pub fn append_text(&mut self, text: &str) {
         let len = text.len();
         let tptr = text.as_bytes().as_ptr();
-        unsafe { self.base.widget.as_mut().send(SCI_APPENDTEXT, len as c_uint, tptr as c_int); }
+        unsafe { self.base.widget.as_mut().send(SCI_APPENDTEXT, len, tptr as isize); }
     }
 }
 

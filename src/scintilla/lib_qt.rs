@@ -2,37 +2,26 @@ use super::development as scintilla_dev;
 
 use plygui_qt::common::*;
 use scintilla_sys::*;
-use std::os::raw::{c_int, c_uint};
 
 pub type Scintilla = Member<Control<ScintillaQt>>;
 
 #[repr(C)]
 pub struct ScintillaQt {
     base: QtControlBase<Scintilla, ScintillaEditBase>,
-
     h_command: (bool, SlotSCNotificationPtr<'static>),
-    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int)>,
-    self_ptr: Option<*mut c_void>,
 }
 
 impl scintilla_dev::ScintillaInner for ScintillaQt {
     fn set_margin_width(&mut self, index: usize, width: isize) {
-        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETMARGINWIDTHN as u32, index as c_uint, width as c_int); }
+        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETMARGINWIDTHN as u32, index, width); }
     }
     fn new() -> Box<super::Scintilla> {
-        let mut sc = ScintillaEditBase::new();
-        let (fn_ptr, self_ptr) = unsafe {
-            let self_ptr = sc.as_mut().send(SCI_GETDIRECTPOINTER, 0, 0);
-            let fn_ptr = sc.as_mut().send(SCI_GETDIRECTFUNCTION, 0, 0);
-            (fn_ptr, self_ptr)
-        };
+        let sc = ScintillaEditBase::new();
         let mut sc = Box::new(Member::with_inner(
             Control::with_inner(
                 ScintillaQt {
                     base: QtControlBase::with_params(sc, event_handler),
                     h_command: (false, SlotSCNotificationPtr::new(move |_| {})),
-                    fn_ptr: Some(unsafe { mem::transmute(fn_ptr) }),
-                    self_ptr: Some(self_ptr as *mut c_void),
                 },
                 (),
             ),
@@ -54,7 +43,7 @@ impl scintilla_dev::ScintillaInner for ScintillaQt {
         unsafe { self.base.widget.as_ref().send(SCI_GETREADONLY, 0, 0) as usize == 1 }
     }
     fn set_codepage(&mut self, cp: super::Codepage) {
-        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETCODEPAGE, cp as u32, 0); }
+        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETCODEPAGE, cp as usize, 0); }
     }
     fn codepage(&self) -> super::Codepage {
         unsafe { (self.base.widget.as_ref().send(SCI_GETCODEPAGE, 0, 0) as isize).into() }
@@ -63,7 +52,7 @@ impl scintilla_dev::ScintillaInner for ScintillaQt {
         self.set_codepage(super::Codepage::Utf8);
         let len = text.len();
         let tptr = text.as_bytes().as_ptr();
-        unsafe { self.base.widget.as_mut().send(SCI_APPENDTEXT, len as c_uint, tptr as c_int); }
+        unsafe { self.base.widget.as_mut().send(SCI_APPENDTEXT, len, tptr as isize); }
     }
 }
 
