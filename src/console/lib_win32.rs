@@ -4,7 +4,7 @@ use super::scintilla_dev;
 use plygui_win32::common::*;
 use scintilla_sys::{Scintilla_RegisterClasses, Scintilla_ReleaseResources};
 
-use std::os::raw::{c_int, c_void as r_void};
+use std::os::raw::{c_int, c_void as r_void, c_ulong, c_long};
 use std::sync::atomic::Ordering;
 
 lazy_static! {
@@ -15,7 +15,7 @@ lazy_static! {
 pub struct ConsoleWin32 {
     base: WindowsControlBase<Console>,
 
-    fn_ptr: Option<extern "C" fn(*mut r_void, c_int, c_int, c_int) -> c_int>,
+    fn_ptr: Option<extern "C" fn(*mut r_void, c_int, c_ulong, c_long) -> *mut r_void>,
     self_ptr: Option<*mut r_void>,
 }
 
@@ -38,7 +38,7 @@ impl ConsoleWin32 {
         if let Some(fn_ptr) = self.fn_ptr {
             let len = text.len();
             let tptr = text.as_bytes().as_ptr();
-            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_APPENDTEXT as i32, len as c_int, tptr as c_int);
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_APPENDTEXT as i32, len as c_ulong, tptr as c_long);
         }
     }
 }
@@ -57,8 +57,8 @@ impl ControlInner for ConsoleWin32 {
         unsafe {
             self.fn_ptr = Some(mem::transmute(winuser::SendMessageW(self.base.hwnd, super::scintilla_sys::SCI_GETDIRECTFUNCTION, 0, 0)));
             self.self_ptr = Some(winuser::SendMessageW(self.base.hwnd, super::scintilla_sys::SCI_GETDIRECTPOINTER, 0, 0) as *mut r_void);
-            ((self.fn_ptr.unwrap())(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETCODEPAGE as i32, super::Codepage::Utf8 as isize as i32, 0) as isize);
-            ((self.fn_ptr.unwrap())(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETWRAPMODE as i32, super::scintilla_sys::SC_WRAP_CHAR as i32, 0) as isize);
+            ((self.fn_ptr.unwrap())(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETCODEPAGE as i32, super::Codepage::Utf8 as c_ulong, 0) as isize);
+            ((self.fn_ptr.unwrap())(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETWRAPMODE as i32, super::scintilla_sys::SC_WRAP_CHAR as c_ulong, 0) as isize);
         }
     }
     fn on_removed_from_container(&mut self, _member: &mut MemberBase, _control: &mut ControlBase, _: &controls::Container) {

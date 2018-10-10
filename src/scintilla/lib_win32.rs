@@ -3,7 +3,7 @@ use super::development as scintilla_dev;
 use plygui_win32::common::*;
 use scintilla_sys::{Scintilla_RegisterClasses, Scintilla_ReleaseResources};
 
-use std::os::raw::{c_int, c_void as r_void};
+use std::os::raw::{c_int, c_void as r_void, c_ulong, c_long};
 use std::sync::atomic::Ordering;
 
 lazy_static! {
@@ -16,7 +16,7 @@ pub type Scintilla = Member<Control<ScintillaWin32>>;
 pub struct ScintillaWin32 {
     base: WindowsControlBase<Scintilla>,
 
-    fn_ptr: Option<extern "C" fn(*mut r_void, c_int, c_int, c_int) -> c_int>,
+    fn_ptr: Option<extern "C" fn(*mut r_void, c_int, c_ulong, c_long) -> *mut r_void>,
     self_ptr: Option<*mut r_void>,
 }
 
@@ -44,7 +44,7 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
     }
     fn set_margin_width(&mut self, index: usize, width: isize) {
         if let Some(fn_ptr) = self.fn_ptr {
-            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_ulong, width as c_long);
         }
     }
     fn set_readonly(&mut self, readonly: bool) {
@@ -54,14 +54,14 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
     }
     fn is_readonly(&self) -> bool {
         if let Some(fn_ptr) = self.fn_ptr {
-            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_GETREADONLY as i32, 0, 0) != 0
+            !(fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_GETREADONLY as i32, 0, 0).is_null()
         } else {
             true
         }
     }
     fn set_codepage(&mut self, cp: super::Codepage) {
         if let Some(fn_ptr) = self.fn_ptr {
-            ((fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETCODEPAGE as i32, cp as isize as i32, 0) as isize);
+            ((fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_SETCODEPAGE as i32, cp as c_ulong, 0) as isize);
         }
     }
     fn codepage(&self) -> super::Codepage {
@@ -76,7 +76,7 @@ impl scintilla_dev::ScintillaInner for ScintillaWin32 {
         if let Some(fn_ptr) = self.fn_ptr {
             let len = text.len();
             let tptr = text.as_bytes().as_ptr();
-            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_APPENDTEXT as i32, len as c_int, tptr as c_int);
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_APPENDTEXT as i32, len as c_ulong, tptr as c_long);
         }
     }
 }

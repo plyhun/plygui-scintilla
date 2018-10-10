@@ -166,12 +166,22 @@ impl ControlInner for ConsoleImpl {
                                             let rx_in2 = rx_in.clone();
                                             let thread = thread::spawn(move || {
                                                 err.lines().for_each(|line| {
-                                                    let _ = rx_in2.send(RxCommand::Line(line.unwrap() + "\n"));
+                                                    match line {
+                                                    	Ok(line) => {
+                                                    		let _ = rx_in2.send(RxCommand::Line(line + "\n"));
+                                                    	},
+                                                    	Err(_) => {} //TODO
+                                                    }
                                                 });
                                             });
                                             let rx_in3 = rx_in.clone();
                                             out.lines().for_each(|line| {
-                                                let _ = rx_in3.send(RxCommand::Line(line.unwrap() + "\n"));
+                                                match line {
+                                                	Ok(line) => {
+                                                		let _ = rx_in3.send(RxCommand::Line(line + "\n"));
+                                                	},
+                                                	Err(_) => {} //TODO
+                                                }
                                             });
 
                                             thread.join().unwrap();
