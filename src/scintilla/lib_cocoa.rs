@@ -3,7 +3,7 @@ use super::*;
 
 use plygui_cocoa::common::*;
 
-use std::os::raw::{c_int, c_void};
+use std::os::raw::{c_int, c_void, c_ulong, c_long};
 
 lazy_static! {
     static ref WINDOW_CLASS: common::RefClass = unsafe {
@@ -21,7 +21,7 @@ const BASE_CLASS: &str = "ScintillaView";
 pub struct ScintillaCocoa {
     base: common::CocoaControlBase<Scintilla>,
 
-    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int) -> c_int>,
+    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_ulong, c_long) -> *mut c_void>,
     self_ptr: Option<*mut c_void>,
 }
 
@@ -48,7 +48,7 @@ impl scintilla_dev::ScintillaInner for ScintillaCocoa {
 
     fn set_margin_width(&mut self, index: usize, width: isize) {
         if let Some(fn_ptr) = self.fn_ptr {
-            (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_int, width as c_int);
+            (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_ulong, width as c_long);
         }
     }
     fn set_readonly(&mut self, readonly: bool) {
@@ -58,14 +58,14 @@ impl scintilla_dev::ScintillaInner for ScintillaCocoa {
     }
     fn is_readonly(&self) -> bool {
         if let Some(fn_ptr) = self.fn_ptr {
-            (fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_GETREADONLY as i32, 0, 0) != 0
+            !(fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_GETREADONLY as i32, 0, 0).is_null()
         } else {
             true
         }
     }
     fn set_codepage(&mut self, cp: Codepage) {
         if let Some(fn_ptr) = self.fn_ptr {
-            ((fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETCODEPAGE as i32, cp as isize as i32, 0) as isize);
+            ((fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETCODEPAGE as i32, cp as c_ulong, 0) as isize);
         }
     }
     fn codepage(&self) -> super::Codepage {
@@ -80,7 +80,7 @@ impl scintilla_dev::ScintillaInner for ScintillaCocoa {
         if let Some(fn_ptr) = self.fn_ptr {
             let len = text.len();
             let tptr = text.as_bytes().as_ptr();
-            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_APPENDTEXT as i32, len as c_int, tptr as c_int);
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_APPENDTEXT as i32, len as c_ulong, tptr as c_long);
         }
     }
 }
@@ -90,7 +90,7 @@ impl ControlInner for ScintillaCocoa {
         unsafe {
             use scintilla_sys::{SCI_GETDIRECTFUNCTION, SCI_GETDIRECTPOINTER};
 
-            let fn_ptr: extern "C" fn(*mut c_void, c_int, c_int, c_int) -> c_int = msg_send![self.base.control, message:SCI_GETDIRECTFUNCTION wParam:0 lParam:0];
+            let fn_ptr: extern "C" fn(*mut c_void, c_int, c_ulong, c_long) -> *mut c_void = msg_send![self.base.control, message:SCI_GETDIRECTFUNCTION wParam:0 lParam:0];
             let self_ptr: *mut c_void = msg_send![self.base.control, message:SCI_GETDIRECTPOINTER wParam:0 lParam:0];
 
             self.fn_ptr = Some(fn_ptr);

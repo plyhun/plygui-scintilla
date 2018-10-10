@@ -2,7 +2,7 @@ use super::*;
 
 use plygui_cocoa::common::*;
 
-use std::os::raw::{c_int, c_void};
+use std::os::raw::{c_int, c_void, c_ulong, c_long};
 
 lazy_static! {
     static ref WINDOW_CLASS: RefClass = unsafe {
@@ -18,7 +18,7 @@ const BASE_CLASS: &str = "ScintillaView";
 pub struct ConsoleCocoa {
     base: CocoaControlBase<Console>,
 
-    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_int, c_int) -> c_int>,
+    fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_ulong, c_long) -> *mut c_void>,
     self_ptr: Option<*mut c_void>,
 }
 
@@ -35,12 +35,12 @@ impl ConsoleCocoa {
         if let Some(fn_ptr) = self.fn_ptr {
             let len = text.len();
             let tptr = text.as_bytes().as_ptr();
-            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_APPENDTEXT as i32, len as c_int, tptr as c_int);
+            (fn_ptr)(self.self_ptr.unwrap(), super::scintilla_sys::SCI_APPENDTEXT as i32, len as c_ulong, tptr as c_long);
         }
     }
     fn set_codepage(&mut self, cp: Codepage) {
         if let Some(fn_ptr) = self.fn_ptr {
-            ((fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETCODEPAGE as i32, cp as isize as i32, 0) as isize);
+            ((fn_ptr)(self.self_ptr.unwrap(), scintilla_sys::SCI_SETCODEPAGE as i32, cp as c_ulong, 0) as isize);
         }
     }
 }
@@ -53,7 +53,7 @@ impl ControlInner for ConsoleCocoa {
             let selfptr = member as *mut _ as *mut ::std::os::raw::c_void;
             (&mut *self.base.control).set_ivar(IVAR, selfptr);
 
-            let fn_ptr: extern "C" fn(*mut c_void, c_int, c_int, c_int) -> c_int = msg_send![self.base.control, message:SCI_GETDIRECTFUNCTION wParam:0 lParam:0];
+            let fn_ptr: extern "C" fn(*mut c_void, c_int, c_ulong, c_long) -> *mut c_void = msg_send![self.base.control, message:SCI_GETDIRECTFUNCTION wParam:0 lParam:0];
             let self_ptr: *mut c_void = msg_send![self.base.control, message:SCI_GETDIRECTPOINTER wParam:0 lParam:0];
 
             self.fn_ptr = Some(fn_ptr);
