@@ -29,10 +29,10 @@ impl<T: ScintillaInner + Sized + 'static> super::Scintilla for Member<Control<T>
     }
 }
 impl<T: ScintillaInner + Sized> super::NewScintilla for Member<Control<T>> {
-    fn new() -> Box<super::Scintilla> {
+    fn new() -> Box<dyn super::Scintilla> {
         T::new()
     }
-    fn with_content(content: &str) -> Box<super::Scintilla> {
+    fn with_content(content: &str) -> Box<dyn super::Scintilla> {
     	use super::Scintilla;
     	
         let mut sc = T::new();
@@ -51,7 +51,7 @@ impl<T: ConsoleInner + Sized> super::Console for Member<Control<T>> {
     }
 }
 impl<T: ConsoleInner + Sized> super::NewConsole for Member<Control<T>> {
-    fn new(with_command_line: bool) -> Box<super::Console> {
+    fn new(with_command_line: bool) -> Box<dyn super::Console> {
         T::new(with_command_line)
     }
 }

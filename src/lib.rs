@@ -1,14 +1,9 @@
-extern crate scintilla_sys;
+use scintilla_sys;
 
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate plygui_api;
-
-#[cfg(all(target_os = "windows", feature = "win32"))]
-extern crate plygui_win32;
-#[cfg(all(target_os = "windows", feature = "win32"))]
-extern crate winapi;
 
 #[cfg(all(target_os = "macos", feature = "cocoa_"))]
 extern crate plygui_cocoa;
@@ -30,7 +25,7 @@ pub trait Console: plygui_api::controls::Control + plygui_api::controls::HasLabe
     fn exec(&mut self, command: &str);
 }
 pub trait NewConsole {
-    fn new(with_command_line: bool) -> Box<Console>;
+    fn new(with_command_line: bool) -> Box<dyn Console>;
 }
 
 pub trait Scintilla: plygui_api::controls::Control {
@@ -43,8 +38,8 @@ pub trait Scintilla: plygui_api::controls::Control {
     fn append_text(&mut self, text: &str);
 }
 pub trait NewScintilla {
-    fn new() -> Box<Scintilla>;
-    fn with_content(content: &str) -> Box<Scintilla>;
+    fn new() -> Box<dyn Scintilla>;
+    fn with_content(content: &str) -> Box<dyn Scintilla>;
 }
 
 pub enum Codepage {
@@ -77,6 +72,6 @@ impl Default for Codepage {
 }
 
 pub mod imp {
-    pub use console::Console;
-    pub use scintilla::Scintilla;
+    pub use crate::console::Console;
+    pub use crate::scintilla::Scintilla;
 }

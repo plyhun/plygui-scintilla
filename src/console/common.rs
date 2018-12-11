@@ -87,7 +87,7 @@ impl scintilla_dev::ConsoleInner for ConsoleImpl {
 }
 
 impl HasLabelInner for ConsoleImpl {
-    fn label(&self) -> ::std::borrow::Cow<str> {
+    fn label(&self) -> ::std::borrow::Cow<'_, str> {
         match self.cmd {
             ConsoleThread::Idle(ref name) => ::std::borrow::Cow::Borrowed(name),
             ConsoleThread::Running(ref handle, _) => ::std::borrow::Cow::Borrowed(handle.thread().name().unwrap_or(NO_CONSOLE_NAME)),
@@ -102,7 +102,7 @@ impl HasLabelInner for ConsoleImpl {
 }
 
 impl ControlInner for ConsoleImpl {
-    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
+    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &dyn controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         self.native.on_added_to_container(member, control, parent, x, y, pw, ph);
         
         {
@@ -116,7 +116,7 @@ impl ControlInner for ConsoleImpl {
             #[cfg(all(target_os = "macos", feature = "cocoa_"))]
             let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_cocoa::prelude::imp::Window>().unwrap();
         	
-        	window.as_inner_mut().as_inner_mut().as_inner_mut().on_frame((move |w: &mut ::plygui_api::controls::Window| {
+        	window.as_inner_mut().as_inner_mut().as_inner_mut().on_frame((move |w: &mut dyn (::plygui_api::controls::Window)| {
         	    if let Some(console) = w.find_control_by_id_mut(my_id) {
         			let console = console.as_any_mut().downcast_mut::<Console>().unwrap();
 		        	match console.as_inner_mut().as_inner_mut().rx_out.try_recv() {
@@ -205,7 +205,7 @@ impl ControlInner for ConsoleImpl {
             tx_in,
         );
     }
-    fn on_removed_from_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &controls::Container) {
+    fn on_removed_from_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &dyn controls::Container) {
         let name = match self.cmd {
             ConsoleThread::Idle(_) => unreachable!(),
             ConsoleThread::Running(ref handle, ref tx) => {
@@ -217,16 +217,16 @@ impl ControlInner for ConsoleImpl {
         self.native.on_removed_from_container(member, control, parent);
     }
 
-    fn parent(&self) -> Option<&controls::Member> {
+    fn parent(&self) -> Option<&dyn controls::Member> {
         self.native.parent().map(|p| p.as_member())
     }
-    fn parent_mut(&mut self) -> Option<&mut controls::Member> {
+    fn parent_mut(&mut self) -> Option<&mut dyn controls::Member> {
         self.native.parent_mut().map(|p| p.as_member_mut())
     }
-    fn root(&self) -> Option<&controls::Member> {
+    fn root(&self) -> Option<&dyn controls::Member> {
         self.native.root().map(|p| p.as_member())
     }
-    fn root_mut(&mut self) -> Option<&mut controls::Member> {
+    fn root_mut(&mut self) -> Option<&mut dyn controls::Member> {
         self.native.root_mut().map(|p| p.as_member_mut())
     }
 
