@@ -15,7 +15,5 @@ pub use self::common::Console;
 
 #[allow(dead_code)]
 pub(crate) fn spawn() -> Box<dyn (::plygui_api::controls::Control)> {
-    use super::NewConsole;
-
     Console::new(false).into_control()
 }

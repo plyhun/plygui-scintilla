@@ -107,42 +107,53 @@ impl HasLayoutInner for ConsoleWin32 {
     }
 }
 
-impl MemberInner for ConsoleWin32 {
+impl HasNativeIdInner for ConsoleWin32 {
     type Id = Hwnd;
     
-    fn size(&self) -> (u16, u16) {
-        let rect = unsafe { window_rect(self.base.hwnd) };
-        ((rect.right - rect.left) as u16, (rect.bottom - rect.top) as u16)
-    }
-
-    fn on_set_visibility(&mut self, base: &mut MemberBase) {
-        let hwnd = self.base.hwnd;
-        if !hwnd.is_null() {
-            unsafe {
-                winuser::ShowWindow(self.base.hwnd, if base.visibility == types::Visibility::Visible { winuser::SW_SHOW } else { winuser::SW_HIDE });
-            }
-            self.base.invalidate();
-        }
-    }
     unsafe fn native_id(&self) -> Self::Id {
         self.base.hwnd.into()
     }
 }
 
-impl Drawable for ConsoleWin32 {
-    fn draw(&mut self, _member: &mut MemberBase, _control: &mut ControlBase, coords: Option<(i32, i32)>) {
-        if coords.is_some() {
-            self.base.coords = coords;
-        }
-        if let Some((x, y)) = self.base.coords {
+impl HasSizeInner for ConsoleWin32 {
+    fn on_size_set(&mut self, base: &mut MemberBase, (width, height): (u16, u16)) -> bool {
+        use plygui_api::controls::HasLayout;
+
+        let this = base.as_any_mut().downcast_mut::<Console>().unwrap();
+        this.set_layout_width(layout::Size::Exact(width));
+        this.set_layout_width(layout::Size::Exact(height));
+        self.base.invalidate();
+        true
+    }
+}
+impl HasVisibilityInner for ConsoleWin32 {
+    fn on_visibility_set(&mut self, base: &mut MemberBase, visibility: types::Visibility) -> bool {
+        let hwnd = self.base.hwnd;
+        if !hwnd.is_null() {
             unsafe {
-                winuser::SetWindowPos(self.base.hwnd, ptr::null_mut(), x, y, self.base.measured_size.0 as i32, self.base.measured_size.1 as i32, 0);
+                winuser::ShowWindow(self.base.hwnd, if visibility == types::Visibility::Visible { winuser::SW_SHOW } else { winuser::SW_HIDE });
+            }
+            self.on_layout_changed(base);
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl MemberInner for ConsoleWin32 {}
+
+impl Drawable for ConsoleWin32 {
+    fn draw(&mut self, _member: &mut MemberBase, control: &mut ControlBase) {
+        if let Some((x, y)) = control.coords {
+            unsafe {
+                winuser::SetWindowPos(self.base.hwnd, ptr::null_mut(), x, y, control.measured.0 as i32, control.measured.1 as i32, 0);
             }
         }
     }
-    fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, w: u16, h: u16) -> (u16, u16, bool) {
-        let old_size = self.base.measured_size;
-        self.base.measured_size = match member.visibility {
+    fn measure(&mut self, _member: &mut MemberBase, control: &mut ControlBase, w: u16, h: u16) -> (u16, u16, bool) {
+        let old_size = control.measured;
+        control.measured = match control.visibility {
             types::Visibility::Gone => (0, 0),
             _ => {
                 let w = match control.layout.width {
@@ -162,7 +173,7 @@ impl Drawable for ConsoleWin32 {
                 (cmp::max(0, w as i32) as u16, cmp::max(0, h as i32) as u16)
             }
         };
-        (self.base.measured_size.0, self.base.measured_size.1, self.base.measured_size != old_size)
+        (control.measured.0, control.measured.1, control.measured != old_size)
     }
     fn invalidate(&mut self, _member: &mut MemberBase, _control: &mut ControlBase) {
         self.base.invalidate()
@@ -180,11 +191,11 @@ unsafe extern "system" fn handler(hwnd: windef::HWND, msg: minwindef::UINT, wpar
             let width = lparam as u16;
             let height = (lparam >> 16) as u16;
 
-            sc.call_on_resize(width, height);
+            sc.call_on_size(width, height);
         }
         _ => {}
     }
     commctrl::DefSubclassProc(hwnd, msg, wparam, lparam)
 }
 
-impl_all_defaults!(Console);
+default_impls_as!(Console);

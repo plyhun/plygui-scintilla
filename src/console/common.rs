@@ -18,15 +18,6 @@ type ConsoleNative = super::lib_qt::ConsoleQt;
 #[cfg(feature = "gtk3")]
 type ConsoleNative = super::lib_gtk::ConsoleGtk;
 
-#[cfg(all(target_os = "windows", feature = "win32"))]
-type Id = ::plygui_win32::common::Hwnd;
-#[cfg(all(target_os = "macos", feature = "cocoa_"))]
-type Id = ::plygui_cocoa::common::CocoaId;
-#[cfg(feature = "qt5")]
-type Id = ::plygui_qt::common::QtId;
-#[cfg(feature = "gtk3")]
-type Id = ::plygui_gtk::common::GtkWidget;
-
 use std::sync::mpsc;
 use std::{io, process, thread};
 
@@ -108,13 +99,13 @@ impl ControlInner for ConsoleImpl {
         {
         	let my_id = member.as_member().id();
         	#[cfg(all(target_os = "windows", feature = "win32"))]
-            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_win32::prelude::imp::Window>().unwrap();
+            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_win32::imp::Window>().unwrap();
         	#[cfg(feature = "gtk3")]
-            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_gtk::prelude::imp::Window>().unwrap();
+            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_gtk::imp::Window>().unwrap();
         	#[cfg(feature = "qt5")]
-            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_qt::prelude::imp::Window>().unwrap();
+            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_qt::imp::Window>().unwrap();
             #[cfg(all(target_os = "macos", feature = "cocoa_"))]
-            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_cocoa::prelude::imp::Window>().unwrap();
+            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_cocoa::imp::Window>().unwrap();
         	
         	window.as_inner_mut().as_inner_mut().as_inner_mut().on_frame((move |w: &mut dyn (::plygui_api::controls::Window)| {
         	    if let Some(console) = w.find_control_by_id_mut(my_id) {
@@ -242,24 +233,30 @@ impl HasLayoutInner for ConsoleImpl {
     }
 }
 
-impl MemberInner for ConsoleImpl {
-    type Id = Id;
+impl HasNativeIdInner for ConsoleImpl {
+    type Id = Hwnd;
     
-    fn size(&self) -> (u16, u16) {
-        self.native.size()
-    }
-
-    fn on_set_visibility(&mut self, base: &mut MemberBase) {
-        self.native.on_set_visibility(base)
-    }
     unsafe fn native_id(&self) -> Self::Id {
         self.native.native_id()
     }
 }
 
+impl HasSizeInner for ConsoleImpl {
+    fn on_size_set(&mut self, base: &mut MemberBase, size: (u16, u16)) -> bool {
+        self.native.on_size_set(base, size)
+    }
+}
+impl HasVisibilityInner for ConsoleImpl {
+    fn on_visibility_set(&mut self, base: &mut MemberBase, visibility: types::Visibility) -> bool {
+        self.native.on_visibility_set(base, visibility)
+    }
+}
+
+impl MemberInner for ConsoleImpl {}
+
 impl Drawable for ConsoleImpl {
-    fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase, coords: Option<(i32, i32)>) {
-        self.native.draw(member, control, coords);
+    fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase) {
+        self.native.draw(member, control);
     }
     fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, w: u16, h: u16) -> (u16, u16, bool) {
         self.native.measure(member, control, w, h)
@@ -269,4 +266,4 @@ impl Drawable for ConsoleImpl {
     }
 }
 
-impl_all_defaults!(Console);
+default_impls_as!(Console);
