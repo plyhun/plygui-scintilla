@@ -95,12 +95,12 @@ impl HasLayoutInner for ConsoleCocoa {
 }
 
 impl Drawable for ConsoleCocoa {
-    fn draw(&mut self, _member: &mut MemberBase, _control: &mut ControlBase, coords: Option<(i32, i32)>) {
-        self.base.draw(coords);
+    fn draw(&mut self, _member: &mut MemberBase, control: &mut ControlBase) {
+        self.base.draw(control.coords, control.measured);
     }
     fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
-        let old_size = self.base.measured_size;
-        self.base.measured_size = match member.visibility {
+        let old_size = control.measured;
+        control.measured = match control.visibility {
             types::Visibility::Gone => (0, 0),
             _ => {
                 let w = match control.layout.width {
@@ -120,35 +120,48 @@ impl Drawable for ConsoleCocoa {
                 (w, h)
             }
         };
-        (self.base.measured_size.0, self.base.measured_size.1, self.base.measured_size != old_size)
+        (control.measured.0, control.measured.1, control.measured != old_size)
     }
     fn invalidate(&mut self, _: &mut MemberBase, _: &mut ControlBase) {
         self.base.invalidate();
     }
 }
 
-impl MemberInner for ConsoleCocoa {
+impl HasNativeIdInner for ConsoleCocoa {
     type Id = CocoaId;
-
-    fn size(&self) -> (u16, u16) {
-        self.base.measured_size
-    }
-
-    fn on_set_visibility(&mut self, base: &mut MemberBase) {
-        self.base.on_set_visibility(base);
-    }
 
     unsafe fn native_id(&self) -> Self::Id {
         self.base.control.into()
     }
 }
+
+impl HasSizeInner for ConsoleCocoa {
+    fn on_size_set(&mut self, base: &mut MemberBase, (width, height): (u16, u16)) -> bool {
+        use plygui_api::controls::HasLayout;
+
+        let this = base.as_any_mut().downcast_mut::<Console>().unwrap();
+        this.set_layout_width(layout::Size::Exact(width));
+        this.set_layout_width(layout::Size::Exact(height));
+        self.base.invalidate();
+        true
+    }
+}
+
+impl HasVisibilityInner for ConsoleCocoa {
+    fn on_visibility_set(&mut self, _base: &mut MemberBase, value: types::Visibility) -> bool {
+        self.base.on_set_visibility(value)
+    }
+}
+
+impl MemberInner for ConsoleCocoa {}
+
 extern "C" fn set_frame_size(this: &mut Object, _: Sel, param: NSSize) {
-    use plygui_api::controls::Member;
+    use plygui_api::controls::HasNativeId;
 
     unsafe {
         let sp = member_from_cocoa_id_mut::<Console>(this).unwrap();
         let () = msg_send![super(sp.native_id() as cocoa_id, Class::get(BASE_CLASS).unwrap()), setFrameSize: param];
-        sp.call_on_resize(param.width as u16, param.height as u16);
+        sp.call_on_size(param.width as u16, param.height as u16);
     }
 }
-impl_all_defaults!(Console);
+default_impls_as!(Console);

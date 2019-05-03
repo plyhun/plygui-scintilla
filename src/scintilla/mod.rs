@@ -5,9 +5,9 @@ pub(crate) mod lib_win32;
 #[cfg(all(target_os = "windows", feature = "win32"))]
 pub use self::lib_win32::Scintilla;
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", feature = "cocoa_"))]
 pub(crate) mod lib_cocoa;
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", feature = "cocoa_"))]
 pub use self::lib_cocoa::Scintilla;
 
 #[cfg(feature = "qt5")]

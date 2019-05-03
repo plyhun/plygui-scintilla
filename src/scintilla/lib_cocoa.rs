@@ -6,8 +6,8 @@ use plygui_cocoa::common::*;
 use std::os::raw::{c_int, c_void, c_ulong, c_long};
 
 lazy_static! {
-    static ref WINDOW_CLASS: common::RefClass = unsafe {
-        common::register_window_class("PlyguiConsole", BASE_CLASS, |decl| {
+    static ref WINDOW_CLASS: RefClass = unsafe {
+        register_window_class("PlyguiConsole", BASE_CLASS, |decl| {
             decl.add_method(sel!(setFrameSize:), set_frame_size as extern "C" fn(&mut Object, Sel, NSSize));
         })
     };
@@ -19,7 +19,7 @@ const BASE_CLASS: &str = "ScintillaView";
 
 #[repr(C)]
 pub struct ScintillaCocoa {
-    base: common::CocoaControlBase<Scintilla>,
+    base: CocoaControlBase<Scintilla>,
 
     fn_ptr: Option<extern "C" fn(*mut c_void, c_int, c_ulong, c_long) -> *mut c_void>,
     self_ptr: Option<*mut c_void>,
@@ -30,7 +30,7 @@ impl scintilla_dev::ScintillaInner for ScintillaCocoa {
         let mut b = Box::new(Member::with_inner(
             Control::with_inner(
                 ScintillaCocoa {
-                    base: common::CocoaControlBase::with_params(*WINDOW_CLASS),
+                    base: CocoaControlBase::with_params(*WINDOW_CLASS),
                     fn_ptr: None,
                     self_ptr: None,
                 },
@@ -41,7 +41,7 @@ impl scintilla_dev::ScintillaInner for ScintillaCocoa {
 
         unsafe {
             let selfptr = b.as_mut() as *mut _ as *mut ::std::os::raw::c_void;
-            (&mut *b.as_inner_mut().as_inner_mut().base.control).set_ivar(common::IVAR, selfptr);
+            (&mut *b.as_inner_mut().as_inner_mut().base.control).set_ivar(IVAR, selfptr);
         }
         b
     }
@@ -132,12 +132,12 @@ impl HasLayoutInner for ScintillaCocoa {
 }
 
 impl Drawable for ScintillaCocoa {
-    fn draw(&mut self, _member: &mut MemberBase, _control: &mut ControlBase, coords: Option<(i32, i32)>) {
-        self.base.draw(coords);
+    fn draw(&mut self, _member: &mut MemberBase, control: &mut ControlBase) {
+        self.base.draw(control.coords, control.measured);
     }
     fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
-        let old_size = self.base.measured_size;
-        self.base.measured_size = match member.visibility {
+        let old_size = control.measured;
+        control.measured = match control.visibility {
             types::Visibility::Gone => (0, 0),
             _ => {
                 let w = match control.layout.width {
@@ -157,33 +157,46 @@ impl Drawable for ScintillaCocoa {
                 (w, h)
             }
         };
-        (self.base.measured_size.0, self.base.measured_size.1, self.base.measured_size != old_size)
+        (control.measured.0, control.measured.1, control.measured != old_size)
     }
     fn invalidate(&mut self, _: &mut MemberBase, _: &mut ControlBase) {
         self.base.invalidate();
     }
 }
 
-impl MemberInner for ScintillaCocoa {
-    type Id = common::CocoaId;
-
-    fn size(&self) -> (u16, u16) {
-        self.base.measured_size
-    }
-
-    fn on_set_visibility(&mut self, base: &mut MemberBase) {
-        self.base.on_set_visibility(base);
-    }
+impl HasNativeIdInner for ScintillaCocoa {
+    type Id = CocoaId;
 
     unsafe fn native_id(&self) -> Self::Id {
         self.base.control.into()
     }
 }
-extern "C" fn set_frame_size(this: &mut Object, _: Sel, param: NSSize) {
-    unsafe {
-        let sp = common::member_from_cocoa_id_mut::<Scintilla>(this).unwrap();
-        let () = msg_send![super(sp.as_inner_mut().as_inner_mut().base.control, Class::get(BASE_CLASS).unwrap()), setFrameSize: param];
-        sp.call_on_resize(param.width as u16, param.height as u16);
+
+impl HasSizeInner for ScintillaCocoa {
+    fn on_size_set(&mut self, base: &mut MemberBase, (width, height): (u16, u16)) -> bool {
+        use plygui_api::controls::HasLayout;
+
+        let this = base.as_any_mut().downcast_mut::<Scintilla>().unwrap();
+        this.set_layout_width(layout::Size::Exact(width));
+        this.set_layout_width(layout::Size::Exact(height));
+        self.base.invalidate();
+        true
     }
 }
-impl_all_defaults!(Scintilla);
+
+impl HasVisibilityInner for ScintillaCocoa {
+    fn on_visibility_set(&mut self, _base: &mut MemberBase, value: types::Visibility) -> bool {
+        self.base.on_set_visibility(value)
+    }
+}
+
+impl MemberInner for ScintillaCocoa {}
+
+extern "C" fn set_frame_size(this: &mut Object, _: Sel, param: NSSize) {
+    unsafe {
+        let sp = member_from_cocoa_id_mut::<Scintilla>(this).unwrap();
+        let () = msg_send![super(sp.as_inner_mut().as_inner_mut().base.control, Class::get(BASE_CLASS).unwrap()), setFrameSize: param];
+        sp.call_on_size(param.width as u16, param.height as u16);
+    }
+}
+default_impls_as!(Scintilla);

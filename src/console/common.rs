@@ -234,7 +234,7 @@ impl HasLayoutInner for ConsoleImpl {
 }
 
 impl HasNativeIdInner for ConsoleImpl {
-    type Id = Hwnd;
+    type Id = CocoaId;
     
     unsafe fn native_id(&self) -> Self::Id {
         self.native.native_id()

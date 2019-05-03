@@ -6,8 +6,6 @@ extern crate lazy_static;
 extern crate plygui_api;
 
 #[cfg(all(target_os = "macos", feature = "cocoa_"))]
-extern crate plygui_cocoa;
-#[cfg(all(target_os = "macos", feature = "cocoa_"))]
 #[macro_use]
 extern crate objc;
 
