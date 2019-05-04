@@ -1,4 +1,5 @@
 use super::development as scintilla_dev;
+use super::*;
 
 use plygui_qt::common::*;
 use scintilla_sys::*;
@@ -76,35 +77,42 @@ impl ControlInner for ScintillaQt {
         self.base.root_mut()
     }
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, _parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
+        control.coords = Some((x, y));
         self.measure(member, control, pw, ph);
         self.base.dirty = false;
-        self.draw(member, control, Some((x, y)));
+        self.draw(member, control);
     }
     fn on_removed_from_container(&mut self, _member: &mut MemberBase, _control: &mut ControlBase, _: &controls::Container) {}
 }
 
-impl MemberInner for ScintillaQt {
+impl HasNativeIdInner for ScintillaQt {
     type Id = QtId;
 
-    fn on_set_visibility(&mut self, base: &mut MemberBase) {
-        self.base.set_visibility(base.visibility);
-        self.base.invalidate()
-    }
-    fn size(&self) -> (u16, u16) {
-        self.base.measured_size
-    }
     unsafe fn native_id(&self) -> Self::Id {
-        QtId::from(self.base.widget.as_ref() as *const _ as *mut QWidget)
+        QtId::from(self.base.widget.static_cast() as *const QObject as *mut QObject)
     }
 }
+impl HasVisibilityInner for ScintillaQt {
+    fn on_visibility_set(&mut self, _: &mut MemberBase, value: types::Visibility) -> bool {
+        self.base.set_visibility(value);
+        self.base.invalidate()
+    }
+}
+impl HasSizeInner for ScintillaQt {
+    fn on_size_set(&mut self, _: &mut MemberBase, (width, height): (u16, u16)) -> bool {
+        self.base.widget.set_fixed_size((width as i32, height as i32));
+        true
+    }
+}
+impl MemberInner for ScintillaQt {}
 
 impl Drawable for ScintillaQt {
-    fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase, coords: Option<(i32, i32)>) {
-        self.base.draw(member, control, coords);
+    fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase) {
+        self.base.draw(member, control);
     }
     fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
-        let old_size = self.base.measured_size;
-        self.base.measured_size = match member.visibility {
+        let old_size = control.measured;
+        control.measured = match control.visibility {
             types::Visibility::Gone => (0, 0),
             _ => {
                 let w = match control.layout.width {
@@ -120,11 +128,11 @@ impl Drawable for ScintillaQt {
                 (cmp::max(0, w) as u16, cmp::max(0, h) as u16)
             }
         };
-        self.base.dirty = self.base.measured_size != old_size;
-        (self.base.measured_size.0, self.base.measured_size.1, self.base.dirty)
+        self.base.dirty = control.measured != old_size;
+        (control.measured.0, control.measured.1, self.base.dirty)
     }
     fn invalidate(&mut self, _member: &mut MemberBase, _control: &mut ControlBase) {
-        self.base.invalidate()
+        self.base.invalidate();
     }
 }
 
@@ -135,7 +143,7 @@ pub(crate) fn spawn() -> Box<controls::Control> {
     Scintilla::new().into_control()
 }
 
-fn event_handler(object: &mut QObject, event: &QEvent) -> bool {
+fn event_handler(object: &mut QObject, event: &mut QEvent) -> bool {
     unsafe {
         let ptr = object.property(PROPERTY.as_ptr() as *const i8).to_u_long_long();
         if ptr != 0 {
@@ -143,9 +151,11 @@ fn event_handler(object: &mut QObject, event: &QEvent) -> bool {
             match event.type_() {
                 QEventType::Resize => {
                     if sc.as_inner().as_inner().base.dirty {
+                        use plygui_api::controls::HasSize;
+                        
                         sc.as_inner_mut().as_inner_mut().base.dirty = false;
-                        let (width, height) = sc.as_inner().as_inner().size();
-                        sc.call_on_resize(width, height);
+                        let (width, height) = sc.size();
+                        sc.call_on_size(width, height);
                     }
                 }
                 _ => {}
@@ -154,4 +164,4 @@ fn event_handler(object: &mut QObject, event: &QEvent) -> bool {
         false
     }
 }
-impl_all_defaults!(Scintilla);
+default_impls_as!(Scintilla);
