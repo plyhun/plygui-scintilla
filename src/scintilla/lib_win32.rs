@@ -3,7 +3,7 @@ use super::development as scintilla_dev;
 use plygui_win32::common::*;
 use scintilla_sys::{Scintilla_RegisterClasses, Scintilla_ReleaseResources};
 
-use std::os::raw::{c_int, c_void as r_void, c_ulong, c_long};
+use std::os::raw::{c_int, c_long, c_ulong, c_void as r_void};
 use std::sync::atomic::Ordering;
 
 lazy_static! {
@@ -145,7 +145,7 @@ impl HasLayoutInner for ScintillaWin32 {
 
 impl HasNativeIdInner for ScintillaWin32 {
     type Id = Hwnd;
-    
+
     unsafe fn native_id(&self) -> Self::Id {
         self.base.hwnd.into()
     }

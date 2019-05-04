@@ -22,7 +22,9 @@ impl ConsoleQt {
     pub fn append_text(&mut self, text: &str) {
         let len = text.len();
         let tptr = text.as_bytes().as_ptr();
-        unsafe { self.base.widget.as_mut().send(SCI_APPENDTEXT, len, tptr as isize); }
+        unsafe {
+            self.base.widget.as_mut().send(SCI_APPENDTEXT, len, tptr as isize);
+        }
     }
 }
 
@@ -48,7 +50,7 @@ impl ControlInner for ConsoleQt {
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, _parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         unsafe {
             use plygui_qt::qt_core::cpp_utils::StaticCast;
-            
+
             let ptr = member as *mut _ as u64;
             let qo: &mut QObject = self.base.widget.static_cast_mut();
             qo.set_property(PROPERTY.as_ptr() as *const i8, &QVariant::new0(ptr));
@@ -120,7 +122,7 @@ fn event_handler(object: &mut QObject, event: &mut QEvent) -> bool {
             match event.type_() {
                 QEventType::Resize => {
                     use plygui_api::controls::HasSize;
-                    
+
                     let (width, height) = sc.size();
                     sc.call_on_size(width, height);
                 }

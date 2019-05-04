@@ -1,13 +1,13 @@
 use super::*;
 
-#[cfg(all(target_os = "windows", feature = "win32"))]
-use plygui_win32::common::*;
 #[cfg(all(target_os = "macos", feature = "cocoa_"))]
 use plygui_cocoa::common::*;
-#[cfg(feature = "qt5")]
-use plygui_qt::common::*;
 #[cfg(feature = "gtk3")]
 use plygui_gtk::common::*;
+#[cfg(feature = "qt5")]
+use plygui_qt::common::*;
+#[cfg(all(target_os = "windows", feature = "win32"))]
+use plygui_win32::common::*;
 
 #[cfg(all(target_os = "windows", feature = "win32"))]
 type ConsoleNative = super::lib_win32::ConsoleWin32;
@@ -41,7 +41,7 @@ enum RxCommand {
 
 #[repr(C)]
 pub struct ConsoleImpl {
-	native: ConsoleNative,
+    native: ConsoleNative,
     input: bool,
     cmd: ConsoleThread,
     rx_in: mpsc::Sender<RxCommand>,
@@ -54,7 +54,7 @@ impl scintilla_dev::ConsoleInner for ConsoleImpl {
         let b: Box<Console> = Box::new(Member::with_inner(
             Control::with_inner(
                 ConsoleImpl {
-                	native: ConsoleNative::new(),
+                    native: ConsoleNative::new(),
                     cmd: ConsoleThread::Idle(NO_CONSOLE_NAME.into()),
                     rx_in: rx_in,
                     rx_out: rx_out,
@@ -95,41 +95,47 @@ impl HasLabelInner for ConsoleImpl {
 impl ControlInner for ConsoleImpl {
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &dyn controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         self.native.on_added_to_container(member, control, parent, x, y, pw, ph);
-        
+
         {
-        	let my_id = member.as_member().id();
-        	#[cfg(all(target_os = "windows", feature = "win32"))]
+            let my_id = member.as_member().id();
+            #[cfg(all(target_os = "windows", feature = "win32"))]
             let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_win32::imp::Window>().unwrap();
-        	#[cfg(feature = "gtk3")]
+            #[cfg(feature = "gtk3")]
             let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_gtk::imp::Window>().unwrap();
-        	#[cfg(feature = "qt5")]
+            #[cfg(feature = "qt5")]
             let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_qt::imp::Window>().unwrap();
             #[cfg(all(target_os = "macos", feature = "cocoa_"))]
             let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_cocoa::imp::Window>().unwrap();
-        	
-        	window.as_inner_mut().as_inner_mut().as_inner_mut().on_frame((move |w: &mut dyn (::plygui_api::controls::Window)| {
-        	    if let Some(console) = w.find_control_by_id_mut(my_id) {
-        			let console = console.as_any_mut().downcast_mut::<Console>().unwrap();
-		        	match console.as_inner_mut().as_inner_mut().rx_out.try_recv() {
-		        		Ok(cmd) => match cmd {
-		                    RxCommand::Error => { println!("RxErr"); false }
-		                    RxCommand::Line(ref line) => {
-		                    	console.as_inner_mut().as_inner_mut().native.append_text(line.as_str());
-		                    	true
-		                    },
-		                    RxCommand::Ready(_code) => {
-		                    	console.as_inner_mut().as_inner_mut().native.append_text("Done\n");
-		                    	true
-		                    },
-		                },
-		                Err(e) => mpsc::TryRecvError::Empty == e,
-		            }	
-        		} else {
-        			true
-        		}
-        	}).into());
+
+            window.as_inner_mut().as_inner_mut().as_inner_mut().on_frame(
+                (move |w: &mut dyn (::plygui_api::controls::Window)| {
+                    if let Some(console) = w.find_control_by_id_mut(my_id) {
+                        let console = console.as_any_mut().downcast_mut::<Console>().unwrap();
+                        match console.as_inner_mut().as_inner_mut().rx_out.try_recv() {
+                            Ok(cmd) => match cmd {
+                                RxCommand::Error => {
+                                    println!("RxErr");
+                                    false
+                                }
+                                RxCommand::Line(ref line) => {
+                                    console.as_inner_mut().as_inner_mut().native.append_text(line.as_str());
+                                    true
+                                }
+                                RxCommand::Ready(_code) => {
+                                    console.as_inner_mut().as_inner_mut().native.append_text("Done\n");
+                                    true
+                                }
+                            },
+                            Err(e) => mpsc::TryRecvError::Empty == e,
+                        }
+                    } else {
+                        true
+                    }
+                })
+                .into(),
+            );
         }
-        
+
         let name = match self.cmd {
             ConsoleThread::Idle(ref name) => name.clone(),
             _ => unreachable!(),
@@ -148,7 +154,7 @@ impl ControlInner for ConsoleImpl {
                                 TxCommand::Exit => break,
                                 TxCommand::Execute(cmd, args) => {
                                     use std::io::BufRead;
-                                    
+
                                     match process::Command::new(cmd).args(args).stdout(process::Stdio::piped()).stderr(process::Stdio::piped()).spawn() {
                                         Ok(mut cmd) => {
                                             let out = io::BufReader::new(cmd.stdout.take().unwrap());
@@ -158,20 +164,20 @@ impl ControlInner for ConsoleImpl {
                                             let thread = thread::spawn(move || {
                                                 err.lines().for_each(|line| {
                                                     match line {
-                                                    	Ok(line) => {
-                                                    		let _ = rx_in2.send(RxCommand::Line(line + "\n"));
-                                                    	},
-                                                    	Err(_) => {} //TODO
+                                                        Ok(line) => {
+                                                            let _ = rx_in2.send(RxCommand::Line(line + "\n"));
+                                                        }
+                                                        Err(_) => {} //TODO
                                                     }
                                                 });
                                             });
                                             let rx_in3 = rx_in.clone();
                                             out.lines().for_each(|line| {
                                                 match line {
-                                                	Ok(line) => {
-                                                		let _ = rx_in3.send(RxCommand::Line(line + "\n"));
-                                                	},
-                                                	Err(_) => {} //TODO
+                                                    Ok(line) => {
+                                                        let _ = rx_in3.send(RxCommand::Line(line + "\n"));
+                                                    }
+                                                    Err(_) => {} //TODO
                                                 }
                                             });
 
@@ -235,7 +241,7 @@ impl HasLayoutInner for ConsoleImpl {
 
 impl HasNativeIdInner for ConsoleImpl {
     type Id = <ConsoleNative as HasNativeIdInner>::Id;
-    
+
     unsafe fn native_id(&self) -> Self::Id {
         self.native.native_id()
     }

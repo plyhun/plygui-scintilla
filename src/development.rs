@@ -1,7 +1,7 @@
 use plygui_api::development::*;
 
 #[cfg(all(target_os = "windows", feature = "win32"))]
-use std::sync::atomic::{AtomicUsize};
+use std::sync::atomic::AtomicUsize;
 #[cfg(all(target_os = "windows", feature = "win32"))]
 pub(crate) static GLOBAL_COUNT: AtomicUsize = AtomicUsize::new(0);
 
@@ -33,8 +33,8 @@ impl<T: ScintillaInner + Sized> super::NewScintilla for Member<Control<T>> {
         T::new()
     }
     fn with_content(content: &str) -> Box<dyn super::Scintilla> {
-    	use super::Scintilla;
-    	
+        use super::Scintilla;
+
         let mut sc = T::new();
         sc.append_text(content);
         sc

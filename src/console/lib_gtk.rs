@@ -130,7 +130,7 @@ fn on_size_allocate(this: &::plygui_gtk::gtk::Widget, _allo: &::plygui_gtk::gtk:
     let mut ll = this.clone().upcast::<Widget>();
     if let Some(ll) = cast_gtk_widget_to_member_mut::<Console>(&mut ll) {
         use plygui_api::controls::HasSize;
-        
+
         let measured_size = ll.size();
         ll.call_on_size(measured_size.0 as u16, measured_size.1 as u16);
     }

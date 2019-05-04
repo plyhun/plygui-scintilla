@@ -95,7 +95,6 @@ impl ControlInner for ScintillaGtk {
     }
 }
 
-
 impl HasNativeIdInner for ScintillaGtk {
     type Id = GtkWidget;
 
@@ -157,13 +156,13 @@ impl Drawable for ScintillaGtk {
 #[allow(dead_code)]
 pub(crate) fn spawn() -> Box<controls::Control> {
     use crate::NewScintilla;
-    
+
     Scintilla::new().into_control()
 }
 
 fn on_size_allocate(this: &::plygui_gtk::gtk::Widget, _allo: &::plygui_gtk::gtk::Rectangle) {
     use plygui_api::controls::HasSize;
-    
+
     let mut ll = this.clone().upcast::<Widget>();
     let ll = cast_gtk_widget_to_member_mut::<Scintilla>(&mut ll).unwrap();
 

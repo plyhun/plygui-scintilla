@@ -4,7 +4,7 @@ use super::scintilla_dev;
 use plygui_win32::common::*;
 use scintilla_sys::{Scintilla_RegisterClasses, Scintilla_ReleaseResources};
 
-use std::os::raw::{c_int, c_void as r_void, c_ulong, c_long};
+use std::os::raw::{c_int, c_long, c_ulong, c_void as r_void};
 use std::sync::atomic::Ordering;
 
 lazy_static! {
@@ -29,12 +29,12 @@ impl ConsoleWin32 {
             }
         }
         ConsoleWin32 {
-	        base: WindowsControlBase::new(),
-	        fn_ptr: None,
-	        self_ptr: None,
-	    }
+            base: WindowsControlBase::new(),
+            fn_ptr: None,
+            self_ptr: None,
+        }
     }
-	pub fn append_text(&mut self, text: &str) {
+    pub fn append_text(&mut self, text: &str) {
         if let Some(fn_ptr) = self.fn_ptr {
             let len = text.len();
             let tptr = text.as_bytes().as_ptr();
@@ -109,7 +109,7 @@ impl HasLayoutInner for ConsoleWin32 {
 
 impl HasNativeIdInner for ConsoleWin32 {
     type Id = Hwnd;
-    
+
     unsafe fn native_id(&self) -> Self::Id {
         self.base.hwnd.into()
     }

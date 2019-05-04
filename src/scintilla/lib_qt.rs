@@ -14,7 +14,9 @@ pub struct ScintillaQt {
 
 impl scintilla_dev::ScintillaInner for ScintillaQt {
     fn set_margin_width(&mut self, index: usize, width: isize) {
-        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETMARGINWIDTHN as u32, index, width); }
+        unsafe {
+            let _ = self.base.widget.as_mut().send(SCI_SETMARGINWIDTHN as u32, index, width);
+        }
     }
     fn new() -> Box<super::Scintilla> {
         let sc = ScintillaEditBase::new();
@@ -38,13 +40,17 @@ impl scintilla_dev::ScintillaInner for ScintillaQt {
         sc
     }
     fn set_readonly(&mut self, readonly: bool) {
-        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETREADONLY as u32, if readonly { 1 } else { 0 }, 0); }
+        unsafe {
+            let _ = self.base.widget.as_mut().send(SCI_SETREADONLY as u32, if readonly { 1 } else { 0 }, 0);
+        }
     }
     fn is_readonly(&self) -> bool {
         unsafe { self.base.widget.as_ref().send(SCI_GETREADONLY, 0, 0) as usize == 1 }
     }
     fn set_codepage(&mut self, cp: super::Codepage) {
-        unsafe { let _ = self.base.widget.as_mut().send(SCI_SETCODEPAGE, cp as usize, 0); }
+        unsafe {
+            let _ = self.base.widget.as_mut().send(SCI_SETCODEPAGE, cp as usize, 0);
+        }
     }
     fn codepage(&self) -> super::Codepage {
         unsafe { (self.base.widget.as_ref().send(SCI_GETCODEPAGE, 0, 0) as isize).into() }
@@ -53,7 +59,9 @@ impl scintilla_dev::ScintillaInner for ScintillaQt {
         self.set_codepage(super::Codepage::Utf8);
         let len = text.len();
         let tptr = text.as_bytes().as_ptr();
-        unsafe { self.base.widget.as_mut().send(SCI_APPENDTEXT, len, tptr as isize); }
+        unsafe {
+            self.base.widget.as_mut().send(SCI_APPENDTEXT, len, tptr as isize);
+        }
     }
 }
 
@@ -152,7 +160,7 @@ fn event_handler(object: &mut QObject, event: &mut QEvent) -> bool {
                 QEventType::Resize => {
                     if sc.as_inner().as_inner().base.dirty {
                         use plygui_api::controls::HasSize;
-                        
+
                         sc.as_inner_mut().as_inner_mut().base.dirty = false;
                         let (width, height) = sc.size();
                         sc.call_on_size(width, height);

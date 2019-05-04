@@ -2,7 +2,7 @@ use super::*;
 
 use plygui_cocoa::common::*;
 
-use std::os::raw::{c_int, c_void, c_ulong, c_long};
+use std::os::raw::{c_int, c_long, c_ulong, c_void};
 
 lazy_static! {
     static ref WINDOW_CLASS: RefClass = unsafe {
