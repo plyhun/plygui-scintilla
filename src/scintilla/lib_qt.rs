@@ -110,7 +110,7 @@ impl Drawable for ScintillaQt {
     fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase) {
         self.base.draw(member, control);
     }
-    fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
+    fn measure(&mut self, _member: &mut MemberBase, control: &mut ControlBase, parent_width: u16, parent_height: u16) -> (u16, u16, bool) {
         let old_size = control.measured;
         control.measured = match control.visibility {
             types::Visibility::Gone => (0, 0),

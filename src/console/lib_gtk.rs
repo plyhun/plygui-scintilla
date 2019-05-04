@@ -18,12 +18,12 @@ impl ConsoleGtk {
             base: GtkControlBase::with_gtk_widget(sc.upcast::<Widget>()),
         };
         {
-            let sc: Widget = sc.base.widget.clone().into();
+            let sc: Object = Object::from(sc.base.widget.clone()).into();
             let sc = sc.downcast::<GtkScintilla>().unwrap();
             sc.connect_notify(on_notify);
         }
-        sc.base.widget.connect_size_allocate(on_size_allocate);
-        let widget: Widget = sc.base.widget.clone().into();
+        Object::from(sc.base.widget.clone()).downcast::<Widget>().unwrap().connect_size_allocate(on_size_allocate);
+        let widget: Object = Object::from(sc.base.widget.clone()).into();
         let widget = widget.downcast::<GtkScintilla>().unwrap();
         widget.send_message(scintilla_sys::SCI_SETCODEPAGE as u32, super::Codepage::Utf8 as isize as u64, 0);
         widget.send_message(scintilla_sys::SCI_SETWRAPMODE as u32, scintilla_sys::SC_WRAP_CHAR as u64, 0);
@@ -32,7 +32,7 @@ impl ConsoleGtk {
     pub fn append_text(&mut self, text: &str) {
         let len = text.len();
         let tptr = text.as_bytes().as_ptr();
-        let widget: Widget = self.base.widget.clone().into();
+        let widget: Object = Object::from(self.base.widget.clone()).into();
         widget.downcast::<GtkScintilla>().unwrap().send_message(scintilla_sys::SCI_APPENDTEXT as u32, len as u64, tptr as i64);
     }
 }
@@ -47,7 +47,8 @@ impl ControlInner for ConsoleGtk {
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, _parent: &controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         self.base.set_pointer(member as *mut _ as *mut c_void);
         self.measure(member, control, pw, ph);
-        self.draw(member, control, Some((x, y)));
+        control.coords = Some((x, y));
+        self.draw(member, control);
     }
     fn on_removed_from_container(&mut self, _: &mut MemberBase, _: &mut ControlBase, _: &controls::Container) {}
 
@@ -65,31 +66,38 @@ impl ControlInner for ConsoleGtk {
     }
 }
 
-impl MemberInner for ConsoleGtk {
+impl HasNativeIdInner for ConsoleGtk {
     type Id = GtkWidget;
-
-    fn size(&self) -> (u16, u16) {
-        self.base.measured_size
-    }
-
-    fn on_set_visibility(&mut self, _: &mut MemberBase) {
-        self.base.invalidate()
-    }
 
     unsafe fn native_id(&self) -> Self::Id {
         self.base.widget.clone().into()
     }
 }
 
+impl HasSizeInner for ConsoleGtk {
+    fn on_size_set(&mut self, _: &mut MemberBase, (width, height): (u16, u16)) -> bool {
+        self.base.widget().set_size_request(width as i32, height as i32);
+        true
+    }
+}
+
+impl HasVisibilityInner for ConsoleGtk {
+    fn on_visibility_set(&mut self, _: &mut MemberBase, _: types::Visibility) -> bool {
+        self.base.invalidate()
+    }
+}
+
+impl MemberInner for ConsoleGtk {}
+
 impl Drawable for ConsoleGtk {
-    fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase, coords: Option<(i32, i32)>) {
-        self.base.draw(member, control, coords);
+    fn draw(&mut self, _: &mut MemberBase, control: &mut ControlBase) {
+        self.base.draw(control);
     }
     fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, w: u16, h: u16) -> (u16, u16, bool) {
-        let old_size = self.base.measured_size;
+        let old_size = control.measured;
         let (lm, tm, rm, bm) = self.base.margins().into();
 
-        self.base.measured_size = match member.visibility {
+        control.measured = match control.visibility {
             types::Visibility::Gone => (0, 0),
             _ => {
                 let w = match control.layout.width {
@@ -109,20 +117,22 @@ impl Drawable for ConsoleGtk {
                 (cmp::max(0, w as i32 + lm + rm) as u16, cmp::max(0, h as i32 + tm + bm) as u16)
             }
         };
-        (self.base.measured_size.0, self.base.measured_size.1, self.base.measured_size != old_size)
+        (control.measured.0, control.measured.1, control.measured != old_size)
     }
     fn invalidate(&mut self, _: &mut MemberBase, _: &mut ControlBase) {
-        self.base.invalidate()
+        self.base.invalidate();
     }
 }
 
-impl_all_defaults!(Console);
+default_impls_as!(Console);
 
 fn on_size_allocate(this: &::plygui_gtk::gtk::Widget, _allo: &::plygui_gtk::gtk::Rectangle) {
     let mut ll = this.clone().upcast::<Widget>();
     if let Some(ll) = cast_gtk_widget_to_member_mut::<Console>(&mut ll) {
-        let measured_size = ll.as_inner().as_inner().size();
-        ll.call_on_resize(measured_size.0 as u16, measured_size.1 as u16);
+        use plygui_api::controls::HasSize;
+        
+        let measured_size = ll.size();
+        ll.call_on_size(measured_size.0 as u16, measured_size.1 as u16);
     }
 }
 
