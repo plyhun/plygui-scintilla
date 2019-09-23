@@ -9,7 +9,7 @@ name = "plygui_scintilla"
 path = "src/lib.rs"
 
 [dependencies]
-plygui-api = {version = "0.0.1", path = "../plygui-api"}
+plygui-api = {version = "0.0.1", path = "../plygui/api"}
 scintilla-sys = "~4.0"
 lazy_static = "~0.2"
 

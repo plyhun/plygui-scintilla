@@ -78,13 +78,13 @@ impl scintilla_dev::ConsoleInner for ConsoleImpl {
 }
 
 impl HasLabelInner for ConsoleImpl {
-    fn label(&self) -> ::std::borrow::Cow<'_, str> {
+    fn label(&self,  _: &MemberBase) -> ::std::borrow::Cow<'_, str> {
         match self.cmd {
             ConsoleThread::Idle(ref name) => ::std::borrow::Cow::Borrowed(name),
             ConsoleThread::Running(ref handle, _) => ::std::borrow::Cow::Borrowed(handle.thread().name().unwrap_or(NO_CONSOLE_NAME)),
         }
     }
-    fn set_label(&mut self, _: &mut MemberBase, label: &str) {
+    fn set_label(&mut self, _: &mut MemberBase, label: Cow<str>) {
         match self.cmd {
             ConsoleThread::Idle(ref mut name) => *name = label.into(),
             ConsoleThread::Running(_, _) => {} // TODO warn
@@ -99,17 +99,17 @@ impl ControlInner for ConsoleImpl {
         {
             let my_id = member.as_member().id();
             #[cfg(all(target_os = "windows", feature = "win32"))]
-            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_win32::imp::Window>().unwrap();
+            let mut app = ::plygui_win32::imp::Application::get().unwrap();
             #[cfg(feature = "gtk3")]
-            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_gtk::imp::Window>().unwrap();
+            let mut app = ::plygui_gtk::imp::Application::get().unwrap();
             #[cfg(feature = "qt5")]
-            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_qt::imp::Window>().unwrap();
+            let mut app = ::plygui_qt::imp::Application::get().unwrap();
             #[cfg(all(target_os = "macos", feature = "cocoa_"))]
-            let window = self.root_mut().unwrap().as_any_mut().downcast_mut::<::plygui_cocoa::imp::Window>().unwrap();
+            let mut app = ::plygui_cocoa::imp::Application::get().unwrap();
 
-            window.as_inner_mut().as_inner_mut().as_inner_mut().on_frame(
-                (move |w: &mut dyn (::plygui_api::controls::Window)| {
-                    if let Some(console) = w.find_control_by_id_mut(my_id) {
+            app.on_frame(
+                (move |w: &mut dyn (::plygui_api::controls::Application)| {
+                    if let Some(console) = w.find_member_mut(types::FindBy::Id(my_id)) {
                         let console = console.as_any_mut().downcast_mut::<Console>().unwrap();
                         match console.as_inner_mut().as_inner_mut().rx_out.try_recv() {
                             Ok(cmd) => match cmd {
