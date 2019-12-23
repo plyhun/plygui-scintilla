@@ -27,7 +27,7 @@ const NO_CONSOLE_NAME: &str = "Plygui Unnamed Console";
 
 enum ConsoleThread {
     Idle(String),
-    Running((thread::JoinHandle<()>), mpsc::Sender<TxCommand>),
+    Running(thread::JoinHandle<()>, mpsc::Sender<TxCommand>),
 }
 enum TxCommand {
     Execute(String, Vec<String>),
