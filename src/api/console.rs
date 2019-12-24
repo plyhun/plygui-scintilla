@@ -2,9 +2,11 @@ use plygui_api::{
     controls::{Member, Control, HasLabel},
     development::{AControl, ControlInner, HasInner, AMember, HasLabelInner},
 };
+use crate::CodeEditor;
+use crate::development::{CodeEditorInner, ACodeEditor};
 
 define! {
-    Console: Control + HasLabel {
+    Console: CodeEditor + HasLabel {
         outer: {
             fn exec(&mut self, command: &str);
         }
@@ -17,9 +19,9 @@ define! {
     }
 }
 
-impl<T: ConsoleInner> Console for AMember<AControl<AConsole<T>>> {
+impl<T: ConsoleInner> Console for AMember<AControl<ACodeEditor<AConsole<T>>>> {
     fn exec(&mut self, command: &str) {
-        self.inner_mut().inner_mut().inner_mut().exec(command)
+        self.inner_mut().inner_mut().inner_mut().inner_mut().exec(command)
     }
     fn as_console (& self) -> & dyn Console { self } 
     fn as_console_mut (& mut self) -> & mut dyn Console { self } 

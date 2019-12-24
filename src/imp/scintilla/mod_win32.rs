@@ -10,33 +10,34 @@ lazy_static! {
     pub static ref WINDOW_CLASS: Vec<u16> = OsStr::new("Scintilla").encode_wide().chain(Some(0).into_iter()).collect::<Vec<_>>();
 }
 
-pub type CodeEditor = AMember<AControl<ACodeEditor<WindowsCodeEditor>>>;
+pub type Scintilla = AMember<AControl<AScintilla<WindowsScintilla>>>;
 
 #[repr(C)]
-pub struct WindowsCodeEditor {
-    base: WindowsControlBase<CodeEditor>,
+pub struct WindowsScintilla {
+    base: WindowsControlBase<Scintilla>,
 
     fn_ptr: Option<extern "C" fn(*mut r_void, c_int, c_ulong, c_long) -> *mut r_void>,
     self_ptr: Option<*mut r_void>,
 }
 
-impl CodeEditorInner for WindowsCodeEditor {
-    fn new() -> Box<CodeEditor> {
-        if scintilla_dev::GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
+impl ScintillaInner for WindowsScintilla {
+    fn new() -> Box<dyn crate::Scintilla> {
+        if GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
             unsafe {
                 if Scintilla_RegisterClasses(hinstance() as *mut r_void) == 0 {
                     panic!("Cannot register Scintilla Win32 class");
                 }
             }
         }
-        let b: Box<CodeEditor> = Box::new(Member::with_inner(
-            Control::with_inner(
-                WindowsCodeEditor {
-                    base: WindowsControlBase::new(),
-                    fn_ptr: None,
-                    self_ptr: None,
-                },
-                (),
+        let b: Box<Scintilla> = Box::new(AMember::with_inner(
+            AControl::with_inner(
+                AScintilla::with_inner(
+                    WindowsScintilla {
+                        base: WindowsControlBase::new(),
+                        fn_ptr: None,
+                        self_ptr: None,
+                    },
+                )
             ),
             MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
         ));
@@ -81,7 +82,13 @@ impl CodeEditorInner for WindowsCodeEditor {
     }
 }
 
-impl ControlInner for WindowsCodeEditor {
+impl Spawnable for WindowsScintilla {
+    fn spawn() -> Box<dyn controls::Control> {
+        Self::new().into_control()
+    }
+}
+
+impl ControlInner for WindowsScintilla {
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &dyn controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         let selfptr = member as *mut _ as *mut c_void;
         let (hwnd, id) = unsafe {
@@ -124,7 +131,7 @@ impl ControlInner for WindowsCodeEditor {
     }
 }
 
-impl Drop for WindowsCodeEditor {
+impl Drop for WindowsScintilla {
     fn drop(&mut self) {
         if crate::development::GLOBAL_COUNT.fetch_sub(1, Ordering::SeqCst) < 1 {
             unsafe {
@@ -134,7 +141,7 @@ impl Drop for WindowsCodeEditor {
     }
 }
 
-impl HasLayoutInner for WindowsCodeEditor {
+impl HasLayoutInner for WindowsScintilla {
     fn on_layout_changed(&mut self, _base: &mut MemberBase) {
         let hwnd = self.base.hwnd;
         if !hwnd.is_null() {
@@ -143,7 +150,7 @@ impl HasLayoutInner for WindowsCodeEditor {
     }
 }
 
-impl HasNativeIdInner for WindowsCodeEditor {
+impl HasNativeIdInner for WindowsScintilla {
     type Id = Hwnd;
 
     unsafe fn native_id(&self) -> Self::Id {
@@ -151,18 +158,18 @@ impl HasNativeIdInner for WindowsCodeEditor {
     }
 }
 
-impl HasSizeInner for WindowsCodeEditor {
+impl HasSizeInner for WindowsScintilla {
     fn on_size_set(&mut self, base: &mut MemberBase, (width, height): (u16, u16)) -> bool {
         use plygui_api::controls::HasLayout;
 
-        let this = base.as_any_mut().downcast_mut::<CodeEditor>().unwrap();
+        let this = base.as_any_mut().downcast_mut::<Scintilla>().unwrap();
         this.set_layout_width(layout::Size::Exact(width));
         this.set_layout_width(layout::Size::Exact(height));
         self.base.invalidate();
         true
     }
 }
-impl HasVisibilityInner for WindowsCodeEditor {
+impl HasVisibilityInner for WindowsScintilla {
     fn on_visibility_set(&mut self, base: &mut MemberBase, visibility: types::Visibility) -> bool {
         let hwnd = self.base.hwnd;
         if !hwnd.is_null() {
@@ -177,9 +184,9 @@ impl HasVisibilityInner for WindowsCodeEditor {
     }
 }
 
-impl MemberInner for WindowsCodeEditor {}
+impl MemberInner for WindowsScintilla {}
 
-impl Drawable for WindowsCodeEditor {
+impl Drawable for WindowsScintilla {
     fn draw(&mut self, _member: &mut MemberBase, control: &mut ControlBase) {
         if let Some((x, y)) = control.coords {
             unsafe {
@@ -217,7 +224,7 @@ impl Drawable for WindowsCodeEditor {
 }
 
 unsafe extern "system" fn handler(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM, _: usize, param: usize) -> isize {
-    let sc: &mut CodeEditor = mem::transmute(param);
+    let sc: &mut Scintilla = mem::transmute(param);
     let ww = winuser::GetWindowLongPtrW(hwnd, winuser::GWLP_USERDATA);
     if ww == 0 {
         winuser::SetWindowLongPtrW(hwnd, winuser::GWLP_USERDATA, param as isize);
@@ -234,4 +241,4 @@ unsafe extern "system" fn handler(hwnd: windef::HWND, msg: minwindef::UINT, wpar
     commctrl::DefSubclassProc(hwnd, msg, wparam, lparam)
 }
 
-default_impls_as!(CodeEditor);
+default_impls_as!(Scintilla);

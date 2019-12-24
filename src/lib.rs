@@ -20,10 +20,11 @@ extern crate plygui_qt;
 extern crate plygui_gtk;
 
 mod development;
-mod imp;
 
+pub mod imp;
 pub mod api;
 
-pub use crate::api::console::Console;
-pub use crate::api::code_editor::CodeEditor;
+//pub use crate::api::console::{Console, NewConsole};
+//pub use crate::api::code_editor::{CodeEditor, NewCodeEditor};
+pub use crate::api::scintilla::{Scintilla, NewScintilla};
 pub use crate::api::Codepage;
