@@ -28,25 +28,25 @@ define! {
     }
 }
 impl<II: ScintillaInner, T: HasInner<I = II> + 'static> ScintillaInner for T {
-    fn new() -> Box<dyn Scintilla> {
+    default fn new() -> Box<dyn Scintilla> {
         <<Self as HasInner>::I as ScintillaInner>::new()
     }
-    fn set_margin_width(&mut self, index: usize, width: isize) {
+    default fn set_margin_width(&mut self, index: usize, width: isize) {
         self.inner_mut().set_margin_width(index, width)
     }
-    fn set_readonly(&mut self, readonly: bool) {
+    default fn set_readonly(&mut self, readonly: bool) {
         self.inner_mut().set_readonly(readonly)
     }
-    fn is_readonly(&self) -> bool {
+    default fn is_readonly(&self) -> bool {
         self.inner().is_readonly()
     }
-    fn set_codepage(&mut self, cp: super::Codepage) {
+    default fn set_codepage(&mut self, cp: super::Codepage) {
         self.inner_mut().set_codepage(cp)
     }
-    fn codepage(&self) -> super::Codepage {
+    default fn codepage(&self) -> super::Codepage {
         self.inner().codepage()
     }
-    fn append_text(&mut self, text: &str) {
+    default fn append_text(&mut self, text: &str) {
         self.inner_mut().append_text(text)
     }
 }

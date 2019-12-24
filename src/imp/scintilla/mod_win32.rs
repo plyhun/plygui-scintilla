@@ -23,6 +23,30 @@ impl HasInner for WindowsScintilla {
     fn into_inner(self) -> Self::I { self.inner }
 }
 
+impl ScintillaInner for WindowsScintilla {
+    fn new() -> Box<dyn crate::Scintilla> {
+        <WindowsScintillaInner<Scintilla> as ScintillaInner>::new()
+    }
+    fn set_margin_width(&mut self, index: usize, width: isize) {
+        self.inner.set_margin_width(index, width)
+    }
+    fn set_readonly(&mut self, readonly: bool) {
+        self.inner.set_readonly(readonly)
+    }
+    fn is_readonly(&self) -> bool {
+        self.inner.is_readonly()
+    }
+    fn set_codepage(&mut self, cp: crate::Codepage) {
+        self.inner.set_codepage(cp)
+    }
+    fn codepage(&self) -> crate::Codepage {
+        self.inner.codepage()
+    }
+    fn append_text(&mut self, text: &str) {
+        self.inner.append_text(text)
+    }
+}
+
 #[repr(C)]
 pub struct WindowsScintillaInner<O: crate::Scintilla> {
     base: WindowsControlBase<O>,
