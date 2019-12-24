@@ -12,15 +12,26 @@ lazy_static! {
 
 pub type Scintilla = AMember<AControl<AScintilla<WindowsScintilla>>>;
 
-#[repr(C)]
 pub struct WindowsScintilla {
-    base: WindowsControlBase<Scintilla>,
+    inner: WindowsScintillaInner<Scintilla>
+}
+impl HasInner for WindowsScintilla {
+    type I = WindowsScintillaInner<Scintilla>;
+    
+    fn inner(&self) -> &Self::I { &self.inner }
+    fn inner_mut(&mut self) -> &mut Self::I { &mut self.inner }
+    fn into_inner(self) -> Self::I { self.inner }
+}
+
+#[repr(C)]
+pub struct WindowsScintillaInner<O: crate::Scintilla> {
+    base: WindowsControlBase<O>,
 
     fn_ptr: Option<extern "C" fn(*mut r_void, c_int, c_ulong, c_long) -> *mut r_void>,
     self_ptr: Option<*mut r_void>,
 }
 
-impl ScintillaInner for WindowsScintilla {
+impl<O: crate::Scintilla> ScintillaInner for WindowsScintillaInner<O> {
     fn new() -> Box<dyn crate::Scintilla> {
         if GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
             unsafe {
@@ -33,10 +44,12 @@ impl ScintillaInner for WindowsScintilla {
             AControl::with_inner(
                 AScintilla::with_inner(
                     WindowsScintilla {
-                        base: WindowsControlBase::new(),
-                        fn_ptr: None,
-                        self_ptr: None,
-                    },
+                        inner: WindowsScintillaInner {
+                            base: WindowsControlBase::new(),
+                            fn_ptr: None,
+                            self_ptr: None,
+                        },
+                    }
                 )
             ),
             MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
@@ -82,13 +95,13 @@ impl ScintillaInner for WindowsScintilla {
     }
 }
 
-impl Spawnable for WindowsScintilla {
+impl<O: crate::Scintilla> Spawnable for WindowsScintillaInner<O> {
     fn spawn() -> Box<dyn controls::Control> {
         Self::new().into_control()
     }
 }
 
-impl ControlInner for WindowsScintilla {
+impl<O: crate::Scintilla> ControlInner for WindowsScintillaInner<O> {
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &dyn controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         let selfptr = member as *mut _ as *mut c_void;
         let (hwnd, id) = unsafe {
@@ -131,7 +144,7 @@ impl ControlInner for WindowsScintilla {
     }
 }
 
-impl Drop for WindowsScintilla {
+impl<O: crate::Scintilla> Drop for WindowsScintillaInner<O> {
     fn drop(&mut self) {
         if crate::development::GLOBAL_COUNT.fetch_sub(1, Ordering::SeqCst) < 1 {
             unsafe {
@@ -141,7 +154,7 @@ impl Drop for WindowsScintilla {
     }
 }
 
-impl HasLayoutInner for WindowsScintilla {
+impl<O: crate::Scintilla> HasLayoutInner for WindowsScintillaInner<O> {
     fn on_layout_changed(&mut self, _base: &mut MemberBase) {
         let hwnd = self.base.hwnd;
         if !hwnd.is_null() {
@@ -150,7 +163,7 @@ impl HasLayoutInner for WindowsScintilla {
     }
 }
 
-impl HasNativeIdInner for WindowsScintilla {
+impl<O: crate::Scintilla> HasNativeIdInner for WindowsScintillaInner<O> {
     type Id = Hwnd;
 
     unsafe fn native_id(&self) -> Self::Id {
@@ -158,7 +171,7 @@ impl HasNativeIdInner for WindowsScintilla {
     }
 }
 
-impl HasSizeInner for WindowsScintilla {
+impl<O: crate::Scintilla> HasSizeInner for WindowsScintillaInner<O> {
     fn on_size_set(&mut self, base: &mut MemberBase, (width, height): (u16, u16)) -> bool {
         use plygui_api::controls::HasLayout;
 
@@ -169,7 +182,7 @@ impl HasSizeInner for WindowsScintilla {
         true
     }
 }
-impl HasVisibilityInner for WindowsScintilla {
+impl<O: crate::Scintilla> HasVisibilityInner for WindowsScintillaInner<O> {
     fn on_visibility_set(&mut self, base: &mut MemberBase, visibility: types::Visibility) -> bool {
         let hwnd = self.base.hwnd;
         if !hwnd.is_null() {
@@ -184,9 +197,9 @@ impl HasVisibilityInner for WindowsScintilla {
     }
 }
 
-impl MemberInner for WindowsScintilla {}
+impl<O: crate::Scintilla> MemberInner for WindowsScintillaInner<O> {}
 
-impl Drawable for WindowsScintilla {
+impl<O: crate::Scintilla> Drawable for WindowsScintillaInner<O> {
     fn draw(&mut self, _member: &mut MemberBase, control: &mut ControlBase) {
         if let Some((x, y)) = control.coords {
             unsafe {
