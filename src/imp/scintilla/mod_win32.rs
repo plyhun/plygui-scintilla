@@ -54,25 +54,29 @@ pub struct WindowsScintillaInner<O: crate::Scintilla> {
     fn_ptr: Option<extern "C" fn(*mut r_void, c_int, c_ulong, c_long) -> *mut r_void>,
     self_ptr: Option<*mut r_void>,
 }
-
-impl<O: crate::Scintilla> ScintillaInner for WindowsScintillaInner<O> {
-    fn new() -> Box<dyn crate::Scintilla> {
-        if GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
+impl<O: crate::Scintilla> ImplInner for WindowsScintillaInner<O> {
+	fn new_inner() -> Self {
+		if GLOBAL_COUNT.fetch_add(1, Ordering::SeqCst) < 1 {
             unsafe {
                 if Scintilla_RegisterClasses(hinstance() as *mut r_void) == 0 {
                     panic!("Cannot register Scintilla Win32 class");
                 }
             }
         }
+		Self {
+            base: WindowsControlBase::new(),
+            fn_ptr: None,
+            self_ptr: None,
+        }
+	}
+}
+impl<O: crate::Scintilla> ScintillaInner for WindowsScintillaInner<O> {
+    fn new() -> Box<dyn crate::Scintilla> {        
         let b: Box<Scintilla> = Box::new(AMember::with_inner(
             AControl::with_inner(
                 AScintilla::with_inner(
                     WindowsScintilla {
-                        inner: WindowsScintillaInner {
-                            base: WindowsControlBase::new(),
-                            fn_ptr: None,
-                            self_ptr: None,
-                        },
+                        inner: WindowsScintillaInner::new_inner(),
                     }
                 )
             ),
