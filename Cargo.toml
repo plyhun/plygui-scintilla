@@ -20,14 +20,13 @@ plygui-qt = {version = "0.0.1", path = "../plygui-qt", optional = true}
 
 [target.'cfg(target_os = "windows")'.dependencies]
 plygui-win32 = {version = "0.0.1", path = "../plygui-win32", optional = true}
-winapi = { version = "~0.3", features = ["windef", "minwindef", "winuser", "winbase", "commctrl", "errhandlingapi", "libloaderapi", "wingdi", "combaseapi", "imm", "oleauto", "wincon", "consoleapi", "processenv", "namedpipeapi"], optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 plygui-cocoa = { version = "0.0.1", path = "../plygui-cocoa", optional = true}
 objc = {version = "~0.2", optional = true}
 
 [features]
-win32 = ["scintilla-sys/win32","winapi","plygui-win32"]
+win32 = ["scintilla-sys/win32","plygui-win32"]
 gtk3 = ["scintilla-sys/gtk3", "plygui-gtk"]
 qt5 = ["scintilla-sys/qt5","plygui-qt"]
 cocoa_ = ["scintilla-sys/cocoa","objc","plygui-cocoa"]

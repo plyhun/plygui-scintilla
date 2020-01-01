@@ -13,13 +13,16 @@ extern crate scintilla_sys;
 #[macro_use]
 extern crate objc;
 
+#[cfg(all(target_os = "windows", feature = "win32"))]
+extern crate plygui_win32;
+
 #[cfg(feature = "qt5")]
 extern crate plygui_qt;
 
 #[cfg(feature = "gtk3")]
 extern crate plygui_gtk;
 
-mod development;
+pub mod development;
 
 pub mod imp;
 pub mod api;

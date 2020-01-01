@@ -5,47 +5,15 @@ use scintilla_sys::{Scintilla_RegisterClasses, Scintilla_ReleaseResources};
 
 use std::os::raw::{c_int, c_long, c_ulong, c_void as r_void};
 use std::sync::atomic::Ordering;
+use std::sync::atomic::AtomicUsize;
+
+static GLOBAL_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 lazy_static! {
     pub static ref WINDOW_CLASS: Vec<u16> = OsStr::new("Scintilla").encode_wide().chain(Some(0).into_iter()).collect::<Vec<_>>();
 }
 
 pub type Scintilla = AMember<AControl<AScintilla<WindowsScintilla>>>;
-
-pub struct WindowsScintilla {
-    inner: WindowsScintillaInner<Scintilla>
-}
-impl HasInner for WindowsScintilla {
-    type I = WindowsScintillaInner<Scintilla>;
-    
-    fn inner(&self) -> &Self::I { &self.inner }
-    fn inner_mut(&mut self) -> &mut Self::I { &mut self.inner }
-    fn into_inner(self) -> Self::I { self.inner }
-}
-
-impl ScintillaInner for WindowsScintilla {
-    fn new() -> Box<dyn crate::Scintilla> {
-        <WindowsScintillaInner<Scintilla> as ScintillaInner>::new()
-    }
-    fn set_margin_width(&mut self, index: usize, width: isize) {
-        self.inner.set_margin_width(index, width)
-    }
-    fn set_readonly(&mut self, readonly: bool) {
-        self.inner.set_readonly(readonly)
-    }
-    fn is_readonly(&self) -> bool {
-        self.inner.is_readonly()
-    }
-    fn set_codepage(&mut self, cp: crate::Codepage) {
-        self.inner.set_codepage(cp)
-    }
-    fn codepage(&self) -> crate::Codepage {
-        self.inner.codepage()
-    }
-    fn append_text(&mut self, text: &str) {
-        self.inner.append_text(text)
-    }
-}
 
 #[repr(C)]
 pub struct WindowsScintillaInner<O: crate::Scintilla> {
@@ -71,7 +39,7 @@ impl<O: crate::Scintilla> ImplInner for WindowsScintillaInner<O> {
 	}
 }
 impl<O: crate::Scintilla> ScintillaInner for WindowsScintillaInner<O> {
-    fn new() -> Box<dyn crate::Scintilla> {        
+    default fn new() -> Box<dyn crate::Scintilla> {        
         let b: Box<Scintilla> = Box::new(AMember::with_inner(
             AControl::with_inner(
                 AScintilla::with_inner(
@@ -84,36 +52,36 @@ impl<O: crate::Scintilla> ScintillaInner for WindowsScintillaInner<O> {
         ));
         b
     }
-    fn set_margin_width(&mut self, index: usize, width: isize) {
+    default fn set_margin_width(&mut self, index: usize, width: isize) {
         if let Some(fn_ptr) = self.fn_ptr {
             (fn_ptr)(self.self_ptr.unwrap(), crate::scintilla_sys::SCI_SETMARGINWIDTHN as i32, index as c_ulong, width as c_long);
         }
     }
-    fn set_readonly(&mut self, readonly: bool) {
+    default fn set_readonly(&mut self, readonly: bool) {
         if let Some(fn_ptr) = self.fn_ptr {
             (fn_ptr)(self.self_ptr.unwrap(), crate::scintilla_sys::SCI_SETREADONLY as i32, if readonly { 1 } else { 0 }, 0);
         }
     }
-    fn is_readonly(&self) -> bool {
+    default fn is_readonly(&self) -> bool {
         if let Some(fn_ptr) = self.fn_ptr {
             !(fn_ptr)(self.self_ptr.unwrap(), crate::scintilla_sys::SCI_GETREADONLY as i32, 0, 0).is_null()
         } else {
             true
         }
     }
-    fn set_codepage(&mut self, cp: crate::Codepage) {
+    default fn set_codepage(&mut self, cp: crate::Codepage) {
         if let Some(fn_ptr) = self.fn_ptr {
             ((fn_ptr)(self.self_ptr.unwrap(), crate::scintilla_sys::SCI_SETCODEPAGE as i32, cp as c_ulong, 0) as isize);
         }
     }
-    fn codepage(&self) -> crate::Codepage {
+    default fn codepage(&self) -> crate::Codepage {
         if let Some(fn_ptr) = self.fn_ptr {
             ((fn_ptr)(self.self_ptr.unwrap(), crate::scintilla_sys::SCI_GETCODEPAGE as i32, 0, 0) as isize).into()
         } else {
             Default::default()
         }
     }
-    fn append_text(&mut self, text: &str) {
+    default fn append_text(&mut self, text: &str) {
         self.set_codepage(crate::Codepage::Utf8);
         if let Some(fn_ptr) = self.fn_ptr {
             let len = text.len();
@@ -128,14 +96,13 @@ impl<O: crate::Scintilla> Spawnable for WindowsScintillaInner<O> {
         Self::new().into_control()
     }
 }
-
 impl<O: crate::Scintilla> ControlInner for WindowsScintillaInner<O> {
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &dyn controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
         let selfptr = member as *mut _ as *mut c_void;
         let (hwnd, id) = unsafe {
             self.base.hwnd = parent.native_id() as windef::HWND; // required for measure, as we don't have own hwnd yet
             let (w, h, _) = self.measure(member, control, pw, ph);
-            create_control_hwnd(x as i32, y as i32, w as i32, h as i32, parent.native_id() as windef::HWND, 0, WINDOW_CLASS.as_ptr(), "", winuser::BS_PUSHBUTTON | winuser::WS_TABSTOP, selfptr, Some(handler))
+            create_control_hwnd(x as i32, y as i32, w as i32, h as i32, parent.native_id() as windef::HWND, 0, WINDOW_CLASS.as_ptr(), "", winuser::BS_PUSHBUTTON | winuser::WS_TABSTOP, selfptr, Some(handler::<O>))
         };
         self.base.hwnd = hwnd;
         self.base.subclass_id = id;
@@ -146,7 +113,7 @@ impl<O: crate::Scintilla> ControlInner for WindowsScintillaInner<O> {
         }
     }
     fn on_removed_from_container(&mut self, _member: &mut MemberBase, _control: &mut ControlBase, _: &dyn controls::Container) {
-        destroy_hwnd(self.base.hwnd, self.base.subclass_id, Some(handler));
+        destroy_hwnd(self.base.hwnd, self.base.subclass_id, Some(handler::<O>));
         self.base.hwnd = 0 as windef::HWND;
         self.base.subclass_id = 0;
         self.fn_ptr = None;
@@ -166,15 +133,15 @@ impl<O: crate::Scintilla> ControlInner for WindowsScintillaInner<O> {
         self.base.root_mut().map(|p| p.as_member_mut())
     }
 
-    #[cfg(feature = "markup")]
+    /*#[cfg(feature = "markup")]
     fn fill_from_markup(&mut self, base: &mut development::MemberControlBase, markup: &plygui_api::markup::Markup, registry: &mut plygui_api::markup::MarkupRegistry) {
         fill_from_markup_base!(self, base, markup, registry, Scintilla, ["Scintilla"]);
-    }
+    }*/
 }
 
 impl<O: crate::Scintilla> Drop for WindowsScintillaInner<O> {
     fn drop(&mut self) {
-        if crate::development::GLOBAL_COUNT.fetch_sub(1, Ordering::SeqCst) < 1 {
+        if GLOBAL_COUNT.fetch_sub(1, Ordering::SeqCst) < 1 {
             unsafe {
                 Scintilla_ReleaseResources();
             }
@@ -264,8 +231,122 @@ impl<O: crate::Scintilla> Drawable for WindowsScintillaInner<O> {
     }
 }
 
-unsafe extern "system" fn handler(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM, _: usize, param: usize) -> isize {
-    let sc: &mut Scintilla = mem::transmute(param);
+#[repr(C)]
+pub struct WindowsScintilla {
+    inner: WindowsScintillaInner<Scintilla>
+}
+impl HasInner for WindowsScintilla {
+    type I = WindowsScintillaInner<Scintilla>;
+    
+    fn inner(&self) -> &Self::I { &self.inner }
+    fn inner_mut(&mut self) -> &mut Self::I { &mut self.inner }
+    fn into_inner(self) -> Self::I { self.inner }
+}
+impl Spawnable for WindowsScintilla {
+    fn spawn() -> Box<dyn controls::Control> {
+        <Self as HasInner>::I::new().into_control()
+    }
+}
+impl ScintillaInner for WindowsScintilla {
+    fn new() -> Box<dyn crate::Scintilla> {
+        <Self as HasInner>::I::new()
+    }
+    fn set_margin_width(&mut self, index: usize, width: isize) {
+        self.inner.set_margin_width(index, width)
+    }
+    fn set_readonly(&mut self, readonly: bool) {
+        self.inner.set_readonly(readonly)
+    }
+    fn is_readonly(&self) -> bool {
+        self.inner.is_readonly()
+    }
+    fn set_codepage(&mut self, cp: crate::Codepage) {
+        self.inner.set_codepage(cp)
+    }
+    fn codepage(&self) -> crate::Codepage {
+        self.inner.codepage()
+    }
+    fn append_text(&mut self, text: &str) {
+        self.inner.append_text(text)
+    }
+} 
+impl ControlInner for WindowsScintilla {
+    fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &dyn controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
+        self.inner.on_added_to_container(member, control, parent, x, y, pw, ph)
+    }
+    fn on_removed_from_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, c: &dyn controls::Container) {
+        self.inner.on_removed_from_container(member, control, c)
+    }
+
+    fn parent(&self) -> Option<&dyn controls::Member> {
+        self.inner.parent()
+    }
+    fn parent_mut(&mut self) -> Option<&mut dyn controls::Member> {
+        self.inner.parent_mut()
+    }
+    fn root(&self) -> Option<&dyn controls::Member> {
+        self.inner.root()
+    }
+    fn root_mut(&mut self) -> Option<&mut dyn controls::Member> {
+        self.inner.root_mut()
+    }
+}
+impl HasVisibilityInner for WindowsScintilla {
+    fn on_visibility_set(&mut self, base: &mut MemberBase, visibility: types::Visibility) -> bool {
+        self.inner.on_visibility_set(base, visibility)
+    }
+}
+impl HasNativeIdInner for WindowsScintilla {
+    type Id = Hwnd;
+
+    unsafe fn native_id(&self) -> Self::Id {
+        self.inner.native_id()
+    }
+}
+impl HasSizeInner for WindowsScintilla {
+    fn on_size_set(&mut self, base: &mut MemberBase, size: (u16, u16)) -> bool {
+        self.inner.on_size_set(base, size)
+    }
+}
+impl HasLayoutInner for WindowsScintilla {
+    fn on_layout_changed(&mut self, base: &mut MemberBase) {
+        self.inner.on_layout_changed(base)
+    }
+}
+impl MemberInner for WindowsScintilla {}
+
+impl Drawable for WindowsScintilla {
+    fn draw(&mut self, member: &mut MemberBase, control: &mut ControlBase) {
+        self.inner.draw(member, control)
+    }
+    fn measure(&mut self, member: &mut MemberBase, control: &mut ControlBase, w: u16, h: u16) -> (u16, u16, bool) {
+        self.inner.measure(member, control, w, h)
+    }
+    fn invalidate(&mut self, member: &mut MemberBase, control: &mut ControlBase) {
+        self.inner.invalidate(member, control)
+    }
+}
+
+impl crate::Scintilla for Scintilla {
+    fn set_margin_width(&mut self, index: usize, width: isize) {
+        self.inner_mut().inner_mut().inner_mut().set_margin_width(index, width)
+    }
+    fn set_readonly(&mut self, readonly: bool) {
+        self.inner_mut().inner_mut().inner_mut().set_readonly(readonly)
+    }
+    fn is_readonly(&self) -> bool {
+        self.inner().inner().inner().is_readonly()
+    }
+    fn append_text(&mut self, text: &str) {
+        self.inner_mut().inner_mut().inner_mut().append_text(text)
+    }
+    fn as_scintilla(& self) -> & dyn crate::Scintilla { self } 
+    fn as_scintilla_mut (& mut self) -> & mut dyn crate::Scintilla { self } 
+    fn into_scintilla (self : Box < Self >) -> Box < dyn crate::Scintilla > { self }
+}
+
+unsafe extern "system" fn handler<T: crate::Scintilla>(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM, _: usize, param: usize) -> isize {
+    let sc: &mut T = mem::transmute(param);
     let ww = winuser::GetWindowLongPtrW(hwnd, winuser::GWLP_USERDATA);
     if ww == 0 {
         winuser::SetWindowLongPtrW(hwnd, winuser::GWLP_USERDATA, param as isize);
@@ -275,7 +356,11 @@ unsafe extern "system" fn handler(hwnd: windef::HWND, msg: minwindef::UINT, wpar
             let width = lparam as u16;
             let height = (lparam >> 16) as u16;
 
-            sc.call_on_size(width, height);
+            //sc.call_on_size(width, height);
+            let self2 = sc as *mut T;
+            if let Some(ref mut cb) = sc.inner_mut().base.on_size {
+                (cb.as_mut())(unsafe { &mut *self2 }, width, height);
+            }
         }
         _ => {}
     }

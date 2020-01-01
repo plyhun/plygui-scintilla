@@ -1,5 +1,7 @@
 #[cfg(all(target_os = "windows", feature = "win32"))]
 pub(crate) mod mod_win32;
+#[cfg(all(target_os = "windows", feature = "win32"))]
+pub use mod_win32::Scintilla;
 
 
 #[cfg(all(target_os = "macos", feature = "cocoa_"))]

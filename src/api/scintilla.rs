@@ -1,6 +1,6 @@
 use plygui_api::{
     controls::{Member, Control},
-    development::{AControl, ControlInner, HasInner, AMember},
+    development::{AControl, ControlInner, HasInner, AMember, Abstract},
 };
 
 define! {
@@ -27,7 +27,7 @@ define! {
         }
     }
 }
-impl<II: ScintillaInner, T: HasInner<I = II> + 'static> ScintillaInner for T {
+impl<II: ScintillaInner, T: HasInner<I = II> + Abstract + 'static> ScintillaInner for T {
     default fn new() -> Box<dyn Scintilla> {
         <<Self as HasInner>::I as ScintillaInner>::new()
     }
@@ -51,21 +51,21 @@ impl<II: ScintillaInner, T: HasInner<I = II> + 'static> ScintillaInner for T {
     }
 }
 impl<T: ScintillaInner> Scintilla for AMember<AControl<AScintilla<T>>> {
-    fn set_margin_width(&mut self, index: usize, width: isize) {
+    default fn set_margin_width(&mut self, index: usize, width: isize) {
         self.inner_mut().inner_mut().inner_mut().set_margin_width(index, width)
     }
-    fn set_readonly(&mut self, readonly: bool) {
+    default fn set_readonly(&mut self, readonly: bool) {
         self.inner_mut().inner_mut().inner_mut().set_readonly(readonly)
     }
-    fn is_readonly(&self) -> bool {
+    default fn is_readonly(&self) -> bool {
         self.inner().inner().inner().is_readonly()
     }
-    fn append_text(&mut self, text: &str) {
+    default fn append_text(&mut self, text: &str) {
         self.inner_mut().inner_mut().inner_mut().append_text(text)
     }
-    fn as_scintilla(& self) -> & dyn Scintilla { self } 
-    fn as_scintilla_mut (& mut self) -> & mut dyn Scintilla { self } 
-    fn into_scintilla (self : Box < Self >) -> Box < dyn Scintilla > { self }
+    default fn as_scintilla(& self) -> & dyn Scintilla { self } 
+    default fn as_scintilla_mut (& mut self) -> & mut dyn Scintilla { self } 
+    default fn into_scintilla (self : Box < Self >) -> Box < dyn Scintilla > { self }
 }
 impl<T: ScintillaInner> NewScintilla for AMember<AControl<AScintilla<T>>> {
     fn new() -> Box<dyn Scintilla> {
