@@ -1,4 +1,5 @@
 #![feature(specialization)]
+#![feature(new_uninit)]
 
 #[macro_use]
 extern crate lazy_static;

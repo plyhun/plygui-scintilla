@@ -5,16 +5,34 @@ use plygui_api::development::*;
 pub type CodeEditor = AMember<AControl<AScintilla<ACodeEditor<ScintillaCodeEditor>>>>;
 
 pub struct ScintillaCodeEditor {
-    inner: ScintillaControlInner<CodeEditor>
+    inner: ScintillaControl
 }
-impl HasInner for ScintillaCodeEditor {
-    type I = ScintillaControlInner<CodeEditor>;
-    
-    fn inner(&self) -> &Self::I { &self.inner }
-    fn inner_mut(&mut self) -> &mut Self::I { &mut self.inner }
-    fn into_inner(self) -> Self::I { self.inner }
+impl<O: crate::CodeEditor> NewCodeEditorInner<O> for ScintillaCodeEditor {
+    fn with_uninit(b: &mut ::std::mem::MaybeUninit<O>) -> Self {
+        Self {
+            inner: <ScintillaControl as NewScintillaInner<O>>::with_uninit(b),
+        }
+    }
 }
-
+impl CodeEditorInner for ScintillaCodeEditor {
+	fn with_content<S: AsRef<str>>(content: S) -> Box<dyn crate::CodeEditor> {
+	    let mut b: Box<::std::mem::MaybeUninit<CodeEditor>> = Box::new_uninit();
+        let mut ab = AMember::with_inner(
+            AControl::with_inner(
+                AScintilla::with_inner(
+                    ACodeEditor::with_inner(
+                        <Self as NewCodeEditorInner<CodeEditor>>::with_uninit(b.as_mut()),
+                    )
+                )
+            ),
+        );
+        ab.append_text(content.as_ref());
+		unsafe {
+	        b.as_mut_ptr().write(ab);
+	        b.assume_init()
+        }
+	}
+}
 impl ScintillaInner for ScintillaCodeEditor {
     fn new() -> Box<dyn crate::Scintilla> {
         Self::with_content("").into_scintilla()	
@@ -37,24 +55,6 @@ impl ScintillaInner for ScintillaCodeEditor {
     fn append_text(&mut self, text: &str) {
         self.inner.append_text(text)
     }
-}
-impl CodeEditorInner for ScintillaCodeEditor {
-	fn with_content<S: AsRef<str>>(content: S) -> Box<dyn crate::CodeEditor> {
-	    let mut b: Box<CodeEditor> = Box::new(AMember::with_inner(
-            AControl::with_inner(
-                AScintilla::with_inner(
-                    ACodeEditor::with_inner(
-                        ScintillaCodeEditor {
-                            inner: ScintillaControlInner::new_inner(),
-                        }
-                    )
-                )
-            ),
-            MemberFunctions::new(_as_any, _as_any_mut, _as_member, _as_member_mut),
-        ));
-        b.append_text(content.as_ref());
-		b
-	}
 }
 impl ControlInner for ScintillaCodeEditor {
     fn on_added_to_container(&mut self, member: &mut MemberBase, control: &mut ControlBase, parent: &dyn controls::Container, x: i32, y: i32, pw: u16, ph: u16) {
@@ -83,7 +83,7 @@ impl HasVisibilityInner for ScintillaCodeEditor {
     }
 }
 impl HasNativeIdInner for ScintillaCodeEditor {
-    type Id = <ScintillaControlInner<CodeEditor> as HasNativeIdInner>::Id;
+    type Id = <ScintillaControl as HasNativeIdInner>::Id;
 
     unsafe fn native_id(&self) -> Self::Id {
         self.inner.native_id()
@@ -116,21 +116,3 @@ impl Drawable for ScintillaCodeEditor {
         self.inner.invalidate(member, control)
     }
 }
-impl crate::Scintilla for CodeEditor {
-    fn set_margin_width(&mut self, index: usize, width: isize) {
-        self.inner_mut().inner_mut().inner_mut().set_margin_width(index, width)
-    }
-    fn set_readonly(&mut self, readonly: bool) {
-        self.inner_mut().inner_mut().inner_mut().set_readonly(readonly)
-    }
-    fn is_readonly(&self) -> bool {
-        self.inner().inner().inner().is_readonly()
-    }
-    fn append_text(&mut self, text: &str) {
-        self.inner_mut().inner_mut().inner_mut().append_text(text)
-    }
-    fn as_scintilla(& self) -> & dyn crate::Scintilla { self } 
-    fn as_scintilla_mut (& mut self) -> & mut dyn crate::Scintilla { self } 
-    fn into_scintilla (self : Box < Self >) -> Box < dyn crate::Scintilla > { self }
-}
-default_impls_as!(CodeEditor);

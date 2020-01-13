@@ -15,7 +15,6 @@ scintilla-sys = "~4.0"
 lazy_static = "~1.4"
 
 plygui-gtk = {version = "0.0.1", path = "../plygui-gtk", optional = true}
-
 plygui-qt = {version = "0.0.1", path = "../plygui-qt", optional = true}
 
 [target.'cfg(target_os = "windows")'.dependencies]
