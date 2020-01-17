@@ -41,7 +41,7 @@ impl<O: crate::Scintilla> NewScintillaInner<O> for WindowsScintilla {
 impl ScintillaInner for WindowsScintilla {
     fn new() -> Box<dyn crate::Scintilla> {        
         let mut b: Box<mem::MaybeUninit<Scintilla>> = Box::new_uninit();
-        let mut ab = AMember::with_inner(
+        let ab = AMember::with_inner(
             AControl::with_inner(
                 AScintilla::with_inner(
                     <Self as NewScintillaInner<Scintilla>>::with_uninit(b.as_mut()),

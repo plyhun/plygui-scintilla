@@ -274,3 +274,13 @@ impl Drawable for ScintillaConsole {
         self.inner.invalidate(member, control)
     }
 }
+impl Drop for ScintillaConsole {
+	fn drop(&mut self) {
+		 match self.cmd {
+            ConsoleThread::Idle(_) => {} // TODO
+            ConsoleThread::Running(_, ref mut tx) => {
+                let _ = tx.send(TxCommand::Exit);
+            }
+        }
+	}
+}
