@@ -28,7 +28,7 @@ pub mod development;
 pub mod imp;
 pub mod api;
 
-//pub use crate::api::console::{Console, NewConsole};
+pub use crate::api::console::{Console, NewConsole};
 pub use crate::api::code_editor::{CodeEditor, NewCodeEditor};
 pub use crate::api::scintilla::{Scintilla, NewScintilla};
 pub use crate::api::Codepage;

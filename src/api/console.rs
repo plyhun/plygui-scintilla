@@ -1,12 +1,12 @@
 use plygui_api::{
-    controls::{Member, Control, HasLabel},
-    development::{AControl, ControlInner, HasInner, AMember, HasLabelInner},
+    controls::{Member, HasLabel},
+    development::{AControl, HasInner, AMember, HasLabelInner, Abstract},
 };
-use crate::CodeEditor;
-use crate::development::{CodeEditorInner, ACodeEditor};
+use crate::Scintilla;
+use crate::development::{ScintillaInner, AScintilla};
 
 define! {
-    Console: CodeEditor + HasLabel {
+    Console: Scintilla + HasLabel {
         outer: {
             fn exec(&mut self, command: &str);
         }
@@ -19,7 +19,7 @@ define! {
     }
 }
 
-impl<T: ConsoleInner> Console for AMember<AControl<ACodeEditor<AConsole<T>>>> {
+impl<T: ConsoleInner> Console for AMember<AControl<AScintilla<AConsole<T>>>> {
     fn exec(&mut self, command: &str) {
         self.inner_mut().inner_mut().inner_mut().inner_mut().exec(command)
     }
@@ -28,7 +28,7 @@ impl<T: ConsoleInner> Console for AMember<AControl<ACodeEditor<AConsole<T>>>> {
     fn into_console (self : Box < Self >) -> Box < dyn Console >  { self }
 }
 
-impl<T: ConsoleInner> NewConsole for AMember<AControl<AConsole<T>>> {
+impl<T: ConsoleInner> NewConsole for AMember<AControl<AScintilla<AConsole<T>>>> {
     fn with_path<S: AsRef<str>>(path: S) -> Box<dyn Console> {
         T::with_path(path)
     }

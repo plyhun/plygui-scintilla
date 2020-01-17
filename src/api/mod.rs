@@ -1,6 +1,6 @@
 pub mod scintilla;
 pub mod code_editor;
-//pub mod console;
+pub mod console;
 
 pub enum Codepage {
     Ascii = 0isize,
