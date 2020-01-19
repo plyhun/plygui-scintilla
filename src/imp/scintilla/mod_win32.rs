@@ -230,7 +230,7 @@ unsafe extern "system" fn handler<T: crate::Scintilla>(hwnd: windef::HWND, msg: 
     let sc: &mut Scintilla = mem::transmute(param);
     let ww = winuser::GetWindowLongPtrW(hwnd, winuser::GWLP_USERDATA);
     if ww == 0 {
-        winuser::SetWindowLongPtrW(hwnd, winuser::GWLP_USERDATA, param as isize);
+        winuser::SetWindowLongPtrW(hwnd, winuser::GWLP_USERDATA, param as WinPtr);
     }
     match msg {
         winuser::WM_SIZE => {
