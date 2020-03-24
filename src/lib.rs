@@ -23,7 +23,7 @@ extern crate plygui_qt;
 #[cfg(feature = "gtk3")]
 extern crate plygui_gtk;
 
-pub mod development;
+pub mod sdk;
 
 pub mod imp;
 pub mod api;

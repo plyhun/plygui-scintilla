@@ -7,9 +7,10 @@ pub use mod_win32::{Scintilla, WindowsScintilla as ScintillaControl};
 #[cfg(all(target_os = "macos", feature = "cocoa_"))]
 pub(crate) mod mod_cocoa;
 
-
 #[cfg(feature = "qt5")]
 pub(crate) mod mod_qt;
+#[cfg(feature = "qt5")]
+pub use mod_qt::{Scintilla, QtScintilla as ScintillaControl};
 
 
 #[cfg(feature = "gtk3")]

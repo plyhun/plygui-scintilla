@@ -1,6 +1,6 @@
-use crate::development::*;
+use crate::sdk::*;
 use plygui_api::*;
-use plygui_api::development::*;
+use plygui_api::sdk::*;
 
 pub type Console = AMember<AControl<AScintilla<AConsole<ScintillaConsole>>>>;
 
@@ -114,16 +114,17 @@ impl ControlInner for ScintillaConsole {
         self.inner.on_added_to_container(member, control, parent, x, y, pw, ph);
         {
             let my_id = member.as_member().id();
+            
             #[cfg(all(target_os = "windows", feature = "win32"))]
-            let mut app = ::plygui_win32::imp::Application::get().unwrap();
+            let app: &mut dyn controls::Application = member.application_mut::<::plygui_win32::imp::Application>();
             #[cfg(feature = "gtk3")]
-            let mut app = ::plygui_gtk::imp::Application::get().unwrap();
+            let app: &mut dyn controls::Application = member.application_mut::<::plygui_gtk::imp::Application>();
             #[cfg(feature = "qt5")]
-            let mut app = ::plygui_qt::imp::Application::get().unwrap();
+            let app: &mut dyn controls::Application = member.application_mut::<::plygui_qt::imp::Application>();
             #[cfg(all(target_os = "macos", feature = "cocoa_"))]
-            let mut app = ::plygui_cocoa::imp::Application::get().unwrap();
+            let app: &mut dyn controls::Application = member.application_mut::<::plygui_cocoa::imp::Application>();
 
-            app.on_frame(
+            app.on_frame( 
                 (move |w: &mut dyn (::plygui_api::controls::Application)| {
                     if let Some(console) = w.find_member_mut(types::FindBy::Id(my_id)) {
                         let console = console.as_any_mut().downcast_mut::<Console>().unwrap();
@@ -243,7 +244,7 @@ impl HasVisibilityInner for ScintillaConsole {
 impl HasNativeIdInner for ScintillaConsole {
     type Id = <ScintillaControl as HasNativeIdInner>::Id;
 
-    unsafe fn native_id(&self) -> Self::Id {
+    fn native_id(&self) -> Self::Id {
         self.inner.native_id()
     }
 }

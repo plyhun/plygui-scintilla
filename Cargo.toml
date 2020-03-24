@@ -11,7 +11,7 @@ path = "src/lib.rs"
 [dependencies]
 plygui-api = {version = "0.0.1", path = "../plygui/api"}
 plygui-macros = {version = "0.0.1", path = "../plygui/macros"}
-scintilla-sys = "~4.0"
+scintilla-sys = {version = "~4.0", path = "../scintilla-sys-rs"}
 lazy_static = "~1.4"
 
 plygui-gtk = {version = "0.0.1", path = "../plygui-gtk", optional = true}

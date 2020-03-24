@@ -1,9 +1,9 @@
 use plygui_api::{
     controls::{Member, HasLabel},
-    development::{AControl, HasInner, AMember, HasLabelInner, Abstract},
+    sdk::{AControl, HasInner, AMember, HasLabelInner, Abstract},
 };
 use crate::Scintilla;
-use crate::development::{ScintillaInner, AScintilla};
+use crate::sdk::{ScintillaInner, AScintilla};
 
 define! {
     Console: Scintilla + HasLabel {

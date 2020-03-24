@@ -1,9 +1,9 @@
 use plygui_api::{
     controls::{Member},
-    development::{AControl, HasInner, AMember, Abstract},
+    sdk::{AControl, HasInner, AMember, Abstract},
 };
 use crate::{Scintilla};
-use crate::development::{ScintillaInner, AScintilla};
+use crate::sdk::{ScintillaInner, AScintilla};
 
 define! {
     CodeEditor: Scintilla {

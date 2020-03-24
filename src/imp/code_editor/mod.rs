@@ -1,6 +1,6 @@
-use crate::development::*;
+use crate::sdk::*;
 use plygui_api::*;
-use plygui_api::development::*;
+use plygui_api::sdk::*;
 
 pub type CodeEditor = AMember<AControl<AScintilla<ACodeEditor<ScintillaCodeEditor>>>>;
 
@@ -85,7 +85,7 @@ impl HasVisibilityInner for ScintillaCodeEditor {
 impl HasNativeIdInner for ScintillaCodeEditor {
     type Id = <ScintillaControl as HasNativeIdInner>::Id;
 
-    unsafe fn native_id(&self) -> Self::Id {
+    fn native_id(&self) -> Self::Id {
         self.inner.native_id()
     }
 }
