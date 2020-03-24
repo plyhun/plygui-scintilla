@@ -15,3 +15,5 @@ pub use mod_qt::{Scintilla, QtScintilla as ScintillaControl};
 
 #[cfg(feature = "gtk3")]
 pub(crate) mod mod_gtk;
+#[cfg(feature = "gtk3")]
+pub use mod_gtk::{Scintilla, GtkScintilla as ScintillaControl};
