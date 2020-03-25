@@ -156,7 +156,7 @@ impl HasLayoutInner for WindowsScintilla {
 impl HasNativeIdInner for WindowsScintilla {
     type Id = Hwnd;
 
-    unsafe fn native_id(&self) -> Self::Id {
+    fn native_id(&self) -> Self::Id {
         self.base.hwnd.into()
     }
 }
