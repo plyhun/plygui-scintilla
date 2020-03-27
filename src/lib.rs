@@ -14,6 +14,9 @@ extern crate scintilla_sys;
 #[macro_use]
 extern crate objc;
 
+#[cfg(all(target_os = "macos", feature = "cocoa_"))]
+extern crate plygui_cocoa;
+
 #[cfg(all(target_os = "windows", feature = "win32"))]
 extern crate plygui_win32;
 
